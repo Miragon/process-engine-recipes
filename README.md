@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Miragon/process-engine-recipes/actions/workflows/build.yaml/badge.svg?branch=main)](https://github.com/Miragon/process-engine-recipes/actions/workflows/build.yaml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-One concrete process-engine problem per folder, solved in working code. Find your problem, read how it was solved and take what you need.
+One concrete process-engine problem per folder, solved in working code. Find your problem, read how it was solved and take what you need: a cookbook, not a meal kit.
 
 ## Why
 
@@ -13,7 +13,7 @@ Most engine material shows how to use an engine. The harder questions come later
 - **Self-contained.** Every recipe builds on its own, and nothing is shared between recipes.
 - **Checked by CI.** Each recipe is built on every change that touches it and names the engine version it was built for.
 
-## Recipes
+## On the menu
 
 | Problem | Recipe | Engine | Language |
 | --- | --- | --- | --- |
@@ -26,6 +26,8 @@ Looking for an older showcase? They are preserved at the tag [`archive/showcases
 ## Working on a recipe
 
 Open the recipe's folder, not the repository root. Its `README.md` and `AGENTS.md` treat that folder as the project.
+
+Every recipe README follows [`RECIPE_TEMPLATE.md`](RECIPE_TEMPLATE.md), so they all read the same way: **Ingredients** (versions and prerequisites), **How it works**, **Cook it** (run it locally), **Taste test** (the automated proof), **Take it home** (copy it into your project) and **Kitchen notes** (gotchas).
 
 ## Contributing
 
