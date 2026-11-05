@@ -18,11 +18,11 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          all=$(ls recipes)
+          all=$(cd recipes && ls -d */*/ | sed 's|/$||')
           if [ -z "$BASE_SHA" ] || git diff --name-only "$BASE_SHA" HEAD | grep -q '^\.github/'; then
             selected=$all
           else
-            selected=$(git diff --name-only "$BASE_SHA" HEAD | sed -n 's|^recipes/\([^/]*\)/.*|\1|p' | sort -u)
+            selected=$(git diff --name-only "$BASE_SHA" HEAD | sed -n 's|^recipes/\([^/]*/[^/]*\)/.*|\1|p' | sort -u)
           fi
           existing=$(comm -12 <(echo "$all" | sort) <(echo "$selected" | sort))
           echo "recipes=$(echo "$existing" | jq -Rsc 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"

@@ -1,7 +1,7 @@
 # AGENTS.md
 
-Each folder in `recipes/` is a self-contained project: open that folder and follow its `AGENTS.md`. Nothing is shared between recipes.
+Recipes are grouped by engine in `recipes/<engine>/<problem>/`, for example `recipes/camunda7/cockpit-sso/`. Each recipe folder is a self-contained project: open that folder and follow its `AGENTS.md`. Nothing is shared between recipes.
 
-A recipe solves one problem, builds on its own, has an automated proof and states the tested engine version. It is named `<engine>-<problem>` and contains `recipe.yaml` (`name`, `problem`, `engine`, `language`, `java`, `build`), `README.md`, `AGENTS.md` and optionally `e2e.sh`.
+A recipe solves one problem, builds on its own, has an automated proof and states the tested engine version. Its `name` is `<engine>-<problem>` and it contains `recipe.yaml` (`name`, `problem`, `engine`, `language`, `java`, `build`), `README.md`, `AGENTS.md` and optionally `e2e.sh`.
 
 Adding a recipe also means adding its row to the root `README.md` and its isolated blocks to `.github/dependabot.yml`, labelled `recipe:<name>`. Add yourself to `.github/CODEOWNERS` as owner of that recipe's path only. List paths that CI does not exercise in `dependabot-automerge.yml`, so they stay manual. Use Conventional Commits, scoped to the recipe.

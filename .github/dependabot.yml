@@ -21,7 +21,7 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'maven'
-    directory: '/recipes/camunda7-cockpit-sso'
+    directory: '/recipes/camunda7/cockpit-sso'
     schedule:
       interval: 'monthly'
     labels:
@@ -45,7 +45,7 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'docker-compose'
-    directory: '/recipes/camunda7-cockpit-sso/sso-stack'
+    directory: '/recipes/camunda7/cockpit-sso/sso-stack'
     schedule:
       interval: 'monthly'
     labels:
@@ -66,7 +66,7 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'maven'
-    directory: '/recipes/zeebe-external-tasklist'
+    directory: '/recipes/camunda8/external-tasklist'
     schedule:
       interval: 'monthly'
     labels:
@@ -87,7 +87,7 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'npm'
-    directory: '/recipes/zeebe-external-tasklist/apps/react-forms'
+    directory: '/recipes/camunda8/external-tasklist/apps/react-forms'
     schedule:
       interval: 'monthly'
     labels:
@@ -108,7 +108,7 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'npm'
-    directory: '/recipes/zeebe-external-tasklist/apps/tasklist'
+    directory: '/recipes/camunda8/external-tasklist/apps/tasklist'
     schedule:
       interval: 'monthly'
     labels:
@@ -129,7 +129,7 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'docker'
-    directory: '/recipes/zeebe-external-tasklist/apps/tasklist'
+    directory: '/recipes/camunda8/external-tasklist/apps/tasklist'
     schedule:
       interval: 'monthly'
     labels:
@@ -150,7 +150,7 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'docker-compose'
-    directory: '/recipes/zeebe-external-tasklist/stack'
+    directory: '/recipes/camunda8/external-tasklist/stack'
     schedule:
       interval: 'monthly'
     labels:
@@ -171,7 +171,7 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'docker'
-    directory: '/recipes/zeebe-external-tasklist/stack/docker'
+    directory: '/recipes/camunda8/external-tasklist/stack/docker'
     schedule:
       interval: 'monthly'
     labels:
@@ -192,7 +192,7 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'gradle'
-    directory: '/recipes/cibseven-multi-engine-cockpit'
+    directory: '/recipes/cibseven/multi-engine-cockpit'
     schedule:
       interval: 'monthly'
     labels:
@@ -213,7 +213,7 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'docker-compose'
-    directory: '/recipes/cibseven-multi-engine-cockpit/stack'
+    directory: '/recipes/cibseven/multi-engine-cockpit/stack'
     schedule:
       interval: 'monthly'
     labels:
@@ -234,7 +234,7 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'npm'
-    directory: '/recipes/cibseven-multi-engine-cockpit/e2e'
+    directory: '/recipes/cibseven/multi-engine-cockpit/e2e'
     schedule:
       interval: 'monthly'
     labels:
