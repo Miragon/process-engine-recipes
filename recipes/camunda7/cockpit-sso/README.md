@@ -1,85 +1,54 @@
-# camunda-cockpit-sso
+# camunda7-cockpit-sso
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Java 21](https://img.shields.io/badge/Java-21-blue.svg)](https://adoptium.net/)
-[![Camunda 7.24](https://img.shields.io/badge/Camunda-7.24-orange.svg)](https://docs.camunda.org/manual/7.24/)
-[![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.5-green.svg)](https://spring.io/projects/spring-boot)
+Camunda 7's Cockpit, Tasklist and Admin bring their own form login, so users get one more password next to your identity provider. This recipe replaces that login with OAuth2/OIDC against an external provider such as Keycloak, and only lets in users who hold a configured client role.
 
-A **reference implementation** for adding **Single Sign-On (OAuth2 / OIDC)** to the
-**Camunda 7 web applications** (Cockpit, Tasklist, Admin) — replacing Camunda's
-built-in form login with an OAuth2/OIDC flow against an external identity provider
-such as **Keycloak**.
+**Serves:** teams running Camunda 7 on Spring Boot who already have an OIDC identity provider.
 
-It is a blueprint to learn from and adapt, **not** a published drop-in library.
-See [Using this in your own project](#using-this-in-your-own-project) to reuse it.
+## Ingredients
 
-## What it demonstrates
+| Component | Version |
+| --- | --- |
+| Camunda 7 | 7.24.0 |
+| Spring Boot | 3.5.16 |
+| Java | 21 |
 
-- **OAuth2/OIDC login for the web apps** instead of Camunda's form login,
-  configured through standard Spring `spring.security.oauth2.*` properties.
-- **Role-gated access.** Only users carrying a configurable client role
-  (`application.web-app-role`) may reach the web apps.
-- **Engine integration.** Bridges the OAuth2 principal into Camunda's
-  `ContainerBasedAuthenticationFilter` and adds a read-only identity provider, so
-  the engine sees the authenticated user without maintaining a separate user store.
-- **Reverse-proxy aware.** Honours `X-Forwarded-*` headers so OAuth2 redirect URLs
-  are built correctly behind HTTPS termination (e.g. an OpenShift/Ingress route).
+You need a JDK 21, Podman or Docker with Compose, and an OAuth2/OIDC identity provider (the local stack brings Keycloak). Maven does not need to be installed: `./mvnw` downloads the pinned version. Versions are pinned in `pom.xml`.
 
 ## How it works
 
 The `cockpit-sso-starter` module configures a Spring Security filter chain that:
 
-1. Redirects unauthenticated web-app requests to the identity provider (`oauth2Login`)
-   and validates bearer tokens on the REST API (`oauth2ResourceServer`).
-2. Requires the `application.web-app-role` role for `/app/**`, `/api/**`, `/assets/**`
-   and `/lib/**`.
-3. Maps the token's roles into Spring `GrantedAuthorities` and hands the user to
-   Camunda through a container-based authentication provider.
+1. Redirects unauthenticated web-app requests to the identity provider (`oauth2Login`) and validates bearer tokens on the REST API (`oauth2ResourceServer`).
+2. Requires the `application.web-app-role` role for `/app/**`, `/api/**`, `/assets/**` and `/lib/**`.
+3. Maps the token's roles into Spring `GrantedAuthorities` and hands the user to Camunda through `ContainerBasedAuthenticationFilter` and a read-only identity provider, so the engine needs no user store of its own.
+4. Honours `X-Forwarded-*` headers, so redirect URLs are correct behind HTTPS termination such as an Ingress or OpenShift route.
 
-See [`CamundaWebAppsSecurityConfiguration`](cockpit-sso-starter/src/main/java/io/miragon/camunda/sso/config/CamundaWebAppsSecurityConfiguration.java)
-for the full filter chain.
+See [`CamundaWebAppsSecurityConfiguration`](cockpit-sso-starter/src/main/java/io/miragon/camunda/sso/config/CamundaWebAppsSecurityConfiguration.java) for the full filter chain.
 
-## Requirements
+| Module | What it does |
+| --- | --- |
+| [`cockpit-sso-starter`](cockpit-sso-starter) | The Spring Security filter chain and the Camunda identity glue. |
+| [`cockpit-sso-service`](cockpit-sso-service) | A runnable example application on port `8082` that wires in the starter. |
+| [`sso-stack`](sso-stack) | A local Keycloak and PostgreSQL for development. |
+| [`bruno`](bruno) | The [Bruno](https://www.usebruno.com/) scenarios used as the proof. |
 
-- Java 21
-- An OAuth2/OIDC identity provider (Keycloak in the examples)
-- Docker / Podman + Docker Compose (for the local development stack)
+## Cook it
 
-> Maven itself does **not** need to be installed — the repository ships the
-> [Maven Wrapper](https://maven.apache.org/wrapper/) (`./mvnw`), which downloads
-> the pinned Maven version on first use.
+The stack calls Keycloak by the hostname `keycloak`, so add it to your hosts file (`/etc/hosts`, or `C:\Windows\System32\Drivers\etc\hosts` on Windows):
 
-## Modules
+```
+127.0.0.1 localhost keycloak
+```
 
-| Module | Description |
-|---|---|
-| [`cockpit-sso-starter`](cockpit-sso-starter) | The SSO configuration — the Spring Security filter chain and Camunda identity glue. Despite the name, it is **not** an auto-configured Spring Boot starter; its `@Configuration` beans have to be picked up by component scanning (see [below](#using-this-in-your-own-project)). |
-| [`cockpit-sso-service`](cockpit-sso-service) | A runnable example application that wires in the configuration module. Handy as a reference and for local testing. |
-| [`sso-stack`](sso-stack) | A local Keycloak + PostgreSQL development environment (dev only, **not** for production). |
+Then run everything with `./e2e.sh`, or step by step:
 
-## Quickstart (local development)
-
-The example service (`cockpit-sso-service`, port `8082`) plus the local `sso-stack`
-gives you a working SSO-protected Camunda in a few steps.
-
-> **Host alias required.** The stack references Keycloak by the hostname `keycloak`,
-> so add it to your hosts file — `/etc/hosts` on macOS/Linux,
-> `C:\Windows\System32\Drivers\etc\hosts` on Windows — so the issuer URL resolves both
-> inside Docker and on your machine:
-> ```
-> 127.0.0.1 localhost keycloak
-> ```
-
-1. **Start the identity provider** — Keycloak, PostgreSQL, and a migration job that
-   seeds the `testrealm`, an `engine` client and a `johndoe` test user:
+1. Start Keycloak, PostgreSQL and a migration job that seeds the `testrealm`, an `engine` client and a `johndoe` test user:
 
    ```bash
    docker compose -f sso-stack/docker-compose.yml up -d
    ```
 
-2. **Run the example service** with the matching SSO settings. The first `install`
-   publishes `cockpit-sso-starter` to your local Maven repo (rerun only after
-   changing the starter):
+2. Run the example service. The first `install` publishes `cockpit-sso-starter` to your local Maven repository; rerun it only after changing the starter:
 
    ```bash
    set -a && source sso-stack/local-docker.env && set +a
@@ -87,49 +56,41 @@ gives you a working SSO-protected Camunda in a few steps.
    ./mvnw -f cockpit-sso-service/pom.xml spring-boot:run
    ```
 
-3. **Open the web apps** at <http://localhost:8082/app/welcome/default/> and log in
-   through Keycloak as `johndoe` / `test`. (The security config only serves the apps
-   under `/app/**`; the bare `/` is not exposed.)
+3. Open <http://localhost:8082/app/welcome/default/> and log in as `johndoe` / `test`.
 
-4. **Smoke-test the stack** with the [Bruno](https://www.usebruno.com/) collection in
-   [`bruno/`](bruno) — open it in Bruno, or run `npx @usebruno/cli run bruno --env Local`
-   from the repo root — to check Keycloak, log `johndoe` in, and call the Camunda REST
-   API through the SSO-protected service.
+## Taste test
 
-## Using this in your own project
+`./e2e.sh` starts the SSO stack and the example service, then runs the Bruno collection in `bruno/`:
 
-This repository is **not published to a Maven repository** and is **not an
-auto-configured Spring Boot starter** — adding `cockpit-sso-starter` as a
-dependency on its own will not wire anything up. There are two realistic ways to
-reuse it:
+1. Keycloak serves the OpenID configuration of `testrealm`.
+2. `johndoe` gets a token.
+3. With that token, the Camunda REST API returns the engine version.
+4. With that token, the REST API lists the process definitions.
 
-**Option A — copy the configuration (recommended).** Copy the classes under
-[`cockpit-sso-starter/.../config`](cockpit-sso-starter/src/main/java/io/miragon/camunda/sso/config)
-into your own Camunda Spring Boot web-app project and adapt them to your needs.
+Run the scenarios alone against a running stack with `npx @usebruno/cli run bruno --env Local`.
 
-**Option B — build and depend on it locally.** Run `./mvnw install` to publish the
-module to your local Maven repository (`~/.m2`), then add the dependency:
+## Take it home
 
-```xml
-<dependency>
-    <groupId>io.miragon.camunda</groupId>
-    <artifactId>cockpit-sso-starter</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-</dependency>
-```
+`cockpit-sso-starter` is not published and not auto-configured. Pick one way:
 
-Because there is no auto-configuration, make sure Spring actually picks up the
-configuration beans — either place your application in the `io.miragon.camunda.sso`
-package (so component scanning finds them) or import them explicitly:
+- **Copy the configuration (recommended).** Copy the classes under [`cockpit-sso-starter/.../config`](cockpit-sso-starter/src/main/java/io/miragon/camunda/sso/config) into your Camunda Spring Boot project and adapt them.
+- **Depend on it locally.** Run `./mvnw install`, add the dependency and make component scanning find the configuration:
 
-```java
-@SpringBootApplication
-@ComponentScan(basePackages = {"com.your.app", "io.miragon.camunda.sso.config"})
-public class YourApplication { }
-```
+  ```xml
+  <dependency>
+      <groupId>io.miragon.camunda</groupId>
+      <artifactId>cockpit-sso-starter</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+  </dependency>
+  ```
 
-In either case, configure your identity provider with the standard Spring Security
-OAuth2 properties plus the two project-specific properties:
+  ```java
+  @SpringBootApplication
+  @ComponentScan(basePackages = {"com.your.app", "io.miragon.camunda.sso.config"})
+  public class YourApplication { }
+  ```
+
+Either way, configure the identity provider with the standard Spring Security properties plus two of the recipe's own:
 
 ```yaml
 spring:
@@ -151,26 +112,20 @@ spring:
             redirect-uri: "{baseUrl}/app/{action}/oauth2/code/{registrationId}"
 
 application:
-  # <client-id>:<role> that a user must hold to access the web apps
   web-app-role: "${SSO_ENGINE_CLIENT_ID}:${WEBAPP_REQUIRED_ROLE}"
-  # id of the spring.security.oauth2.client.registration entry used for login
   registration: keycloak
 ```
 
-### Configuration reference
-
 | Property | Description | Example |
-|---|---|---|
+| --- | --- | --- |
 | `application.web-app-role` | Client role required to access the web apps, as `<client-id>:<role>`. | `engine:webapp-user` |
 | `application.registration` | The OAuth2 client registration id used for the login redirect. | `keycloak` |
 | `spring.security.oauth2.client.*` | Standard Spring Security OAuth2 client configuration (login). | — |
 | `spring.security.oauth2.resourceserver.jwt.issuer-uri` | Issuer used to validate bearer tokens on the REST API. | — |
 
-## Contributing
+## Kitchen notes
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the
-development setup, build/run commands and the pull-request process.
-
-## License
-
-Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+- **Adding the module as a dependency does nothing on its own.** Despite its name, `cockpit-sso-starter` has no auto-configuration. Without the `@ComponentScan` above, the form login stays.
+- **The issuer must resolve the same way everywhere.** Tokens carry the issuer URL the browser saw. If `keycloak` resolves differently in the browser and in the service, token validation fails. That is why the hosts entry is needed.
+- **Only `/app/**` is served.** The bare `/` is not exposed, so open the web apps under `/app/welcome/default/`.
+- **`sso-stack` is for development only.** Its Keycloak and PostgreSQL run with demo credentials and are not meant for production.
