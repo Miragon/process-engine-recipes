@@ -13,7 +13,7 @@ start_instance() {
     "http://localhost:8080/engine-rest/process-definition/key/$2/start"
 }
 
-./mvnw -B package -DskipTests
+./gradlew bootJar
 trap 'compose down' EXIT
 compose up -d --wait
 

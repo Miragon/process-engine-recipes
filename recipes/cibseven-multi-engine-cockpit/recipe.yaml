@@ -3,4 +3,4 @@ problem: Operate the engines of several Spring Boot services from one separately
 engine: CIB seven 2.2
 language: Java
 java: "21"
-build: ./mvnw -B verify
+build: ./gradlew build

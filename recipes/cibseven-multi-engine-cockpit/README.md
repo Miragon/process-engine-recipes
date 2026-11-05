@@ -50,7 +50,7 @@ The services themselves need nothing beyond the REST starter and a user who may 
 To look around yourself:
 
 ```bash
-./mvnw -B package -DskipTests
+./gradlew bootJar
 docker compose -f stack/docker-compose.yml up -d --wait
 ```
 
@@ -98,4 +98,4 @@ Choose the central web client as soon as more than two services or a support tea
 
 ## Versions
 
-CIB seven 2.2.0, Spring Boot 3.5.14, Java 21, Playwright 1.64.1. Tested with Podman and Docker Compose.
+CIB seven 2.2.0, Spring Boot 3.5.14, Java 21, Gradle 9.8.2, Playwright 1.64.1. All library versions are in `gradle/libs.versions.toml`. Tested with Podman and Docker Compose.

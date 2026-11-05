@@ -191,7 +191,7 @@ updates:
         applies-to: security-updates
         patterns: ['*']
 
-  - package-ecosystem: 'maven'
+  - package-ecosystem: 'gradle'
     directory: '/recipes/cibseven-multi-engine-cockpit'
     schedule:
       interval: 'monthly'
@@ -207,11 +207,13 @@ updates:
     ignore:
       - dependency-name: 'org.springframework.boot:*'
         versions: ['>=4.0.0']
+      - dependency-name: 'org.springframework.boot'
+        versions: ['>=4.0.0']
     groups:
-      multi-engine-cockpit-maven:
+      multi-engine-cockpit-gradle:
         applies-to: version-updates
         patterns: ['*']
-      multi-engine-cockpit-maven-security:
+      multi-engine-cockpit-gradle-security:
         applies-to: security-updates
         patterns: ['*']
 

@@ -15,17 +15,17 @@ services:
   membership-service:
     <<: *service
     volumes:
-      - ../membership-service/target/membership-service.jar:/app.jar:ro
+      - ../membership-service/build/libs/membership-service.jar:/app.jar:ro
 
   leasing-service:
     <<: *service
     volumes:
-      - ../leasing-service/target/leasing-service.jar:/app.jar:ro
+      - ../leasing-service/build/libs/leasing-service.jar:/app.jar:ro
 
   logistics-service:
     <<: *service
     volumes:
-      - ../logistics-service/target/logistics-service.jar:/app.jar:ro
+      - ../logistics-service/build/libs/logistics-service.jar:/app.jar:ro
 
   webclient:
     image: cibseven/cibseven:run-2.2.0
