@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: leasing-service
+  datasource:
+    url: jdbc:h2:mem:leasing
+
+camunda:
+  bpm:
+    admin-user:
+      id: demo
+      password: demo

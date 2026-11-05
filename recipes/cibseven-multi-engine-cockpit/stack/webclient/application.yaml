@@ -1,0 +1,13 @@
+cibseven:
+  webclient:
+    engineRest:
+      url: http://membership-service:8080
+      path: /engine-rest
+      displayName: Membership
+      additionalEngineRest:
+        - url: http://leasing-service:8080
+          path: /engine-rest
+          displayName: Leasing
+        - url: http://logistics-service:8080
+          path: /engine-rest
+          displayName: Logistics

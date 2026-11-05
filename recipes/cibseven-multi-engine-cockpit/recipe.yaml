@@ -1,0 +1,6 @@
+name: cibseven-multi-engine-cockpit
+problem: Operate the engines of several Spring Boot services from one separately deployed CIB seven cockpit.
+engine: CIB seven 2.2
+language: Java
+java: "21"
+build: ./gradlew build
