@@ -190,3 +190,69 @@ updates:
       tasklist-stack-image-docker-security:
         applies-to: security-updates
         patterns: ['*']
+
+  - package-ecosystem: 'maven'
+    directory: '/recipes/cibseven-multi-engine-cockpit'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+      - 'recipe:cibseven-multi-engine-cockpit'
+    rebase-strategy: 'auto'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: 'org.springframework.boot:*'
+        versions: ['>=4.0.0']
+    groups:
+      multi-engine-cockpit-maven:
+        applies-to: version-updates
+        patterns: ['*']
+      multi-engine-cockpit-maven-security:
+        applies-to: security-updates
+        patterns: ['*']
+
+  - package-ecosystem: 'docker-compose'
+    directory: '/recipes/cibseven-multi-engine-cockpit/stack'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+      - 'recipe:cibseven-multi-engine-cockpit'
+    rebase-strategy: 'auto'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    cooldown:
+      default-days: 7
+    groups:
+      multi-engine-cockpit-docker-compose:
+        applies-to: version-updates
+        patterns: ['*']
+      multi-engine-cockpit-docker-compose-security:
+        applies-to: security-updates
+        patterns: ['*']
+
+  - package-ecosystem: 'npm'
+    directory: '/recipes/cibseven-multi-engine-cockpit/e2e'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+      - 'recipe:cibseven-multi-engine-cockpit'
+    rebase-strategy: 'auto'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    cooldown:
+      default-days: 7
+    groups:
+      multi-engine-cockpit-npm:
+        applies-to: version-updates
+        patterns: ['*']
+      multi-engine-cockpit-npm-security:
+        applies-to: security-updates
+        patterns: ['*']

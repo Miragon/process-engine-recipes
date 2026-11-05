@@ -1,0 +1,48 @@
+name: miravelo-cockpit
+
+x-service: &service
+  image: eclipse-temurin:21-jre
+  command: ["java", "-jar", "/app.jar"]
+  healthcheck:
+    test: ["CMD", "curl", "-fs", "http://localhost:8080/engine-rest/engine"]
+    interval: 5s
+    timeout: 5s
+    retries: 30
+    start_period: 20s
+
+services:
+
+  membership-service:
+    <<: *service
+    volumes:
+      - ../membership-service/target/membership-service.jar:/app.jar:ro
+
+  leasing-service:
+    <<: *service
+    volumes:
+      - ../leasing-service/target/leasing-service.jar:/app.jar:ro
+
+  logistics-service:
+    <<: *service
+    volumes:
+      - ../logistics-service/target/logistics-service.jar:/app.jar:ro
+
+  webclient:
+    image: cibseven/cibseven:run-2.2.0
+    command: ["./cibseven.sh", "--webapps"]
+    ports: ["8080:8080"]
+    environment:
+      JAVA_OPTS: "-Dspring.config.additional-location=file:/camunda/configuration/engines.yaml"
+      AI_AGENT_ENABLED: "false"
+    volumes:
+      - ./webclient/application.yaml:/camunda/configuration/engines.yaml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8080/webapp/"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 30s
+    depends_on:
+      membership-service: { condition: service_healthy }
+      leasing-service: { condition: service_healthy }
+      logistics-service: { condition: service_healthy }

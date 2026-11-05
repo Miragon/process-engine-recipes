@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: logistics-service
+  datasource:
+    url: jdbc:h2:mem:logistics
+
+camunda:
+  bpm:
+    admin-user:
+      id: demo
+      password: demo
