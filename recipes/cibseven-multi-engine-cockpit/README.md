@@ -13,9 +13,9 @@ Browser ──► webclient :8080/webapp
                  └──► logistics-service  :8080/engine-rest   welcome-package
 ```
 
-The three services come from the MiraVelo domain and contain no business logic: each one is a Spring Boot application with `cibseven-bpm-spring-boot-starter-rest`, an in-memory H2 database and a single process (start → user task → end). The open user task keeps instances visible in the cockpit.
+The three services come from the MiraVelo domain and contain no business logic: each one is a Spring Boot 4 application with `cibseven-bpm-spring-boot-starter-rest-4` (CIB seven ships its Spring Boot 4 starters with a `-4` suffix), an in-memory H2 database and a single process (start → user task → end). The open user task keeps instances visible in the cockpit.
 
-The web client runs in its own container (`cibseven/cibseven:run-2.2.0`, started with `--webapps` only). It calls the engines **server-side**, so the services do not need CORS and only the web client has to be reachable from the browser. The services publish no ports at all.
+The web client runs in its own container (`cibseven/cibseven:run4-2.2.0`, the Spring Boot 4 distribution of CIB seven Run, started with `--webapps` only). It calls the engines **server-side**, so the services do not need CORS and only the web client has to be reachable from the browser. The services publish no ports at all.
 
 ## The configuration
 
@@ -98,4 +98,4 @@ Choose the central web client as soon as more than two services or a support tea
 
 ## Versions
 
-CIB seven 2.2.0, Spring Boot 3.5.14, Java 21, Gradle 9.8.2, Playwright 1.64.1. All library versions are in `gradle/libs.versions.toml`. Tested with Podman and Docker Compose.
+CIB seven 2.2.0, Spring Boot 4.1.2, Java 21, Gradle 9.8.2, Playwright 1.64.1. All library versions are in `gradle/libs.versions.toml`. Tested with Podman and Docker Compose.

@@ -28,7 +28,7 @@ services:
       - ../logistics-service/build/libs/logistics-service.jar:/app.jar:ro
 
   webclient:
-    image: cibseven/cibseven:run-2.2.0
+    image: cibseven/cibseven:run4-2.2.0
     command: ["./cibseven.sh", "--webapps"]
     ports: ["8080:8080"]
     environment:

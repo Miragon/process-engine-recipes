@@ -204,11 +204,6 @@ updates:
       include: 'scope'
     cooldown:
       default-days: 7
-    ignore:
-      - dependency-name: 'org.springframework.boot:*'
-        versions: ['>=4.0.0']
-      - dependency-name: 'org.springframework.boot'
-        versions: ['>=4.0.0']
     groups:
       multi-engine-cockpit-gradle:
         applies-to: version-updates
