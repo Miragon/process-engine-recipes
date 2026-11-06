@@ -14,7 +14,9 @@ import tools.jackson.databind.node.MissingNode
 /** Calls the running application over HTTP, as the task manager and the payment application do. */
 class AppClient(baseUrl: String, private val mapper: JsonMapper) {
 
-    data class Answer(val status: Int, val headers: HttpHeaders, val json: JsonNode)
+    inner class Answer(val status: Int, val headers: HttpHeaders, val body: String) {
+        val json: JsonNode by lazy { if (body.isEmpty()) MissingNode.getInstance() else mapper.readTree(body) }
+    }
 
     private val http = RestClient.create(baseUrl)
 
@@ -35,8 +37,7 @@ class AppClient(baseUrl: String, private val mapper: JsonMapper) {
     private fun call(request: RestClient.RequestHeadersSpec<*>, token: String?): Answer {
         if (token != null) request.header(HttpHeaders.AUTHORIZATION, "Bearer $token")
         return request.exchange { _, response ->
-            val body = response.body.readAllBytes()
-            Answer(response.statusCode.value(), response.headers, if (body.isEmpty()) MissingNode.getInstance() else mapper.readTree(body))
+            Answer(response.statusCode.value(), response.headers, response.body.readAllBytes().decodeToString())
         }!!
     }
 
