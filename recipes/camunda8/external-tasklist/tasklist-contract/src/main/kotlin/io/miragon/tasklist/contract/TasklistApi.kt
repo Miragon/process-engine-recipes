@@ -2,7 +2,9 @@ package io.miragon.tasklist.contract
 
 /** Paths and headers of the provider API that every process application offers to the task manager. */
 object TasklistApi {
-    const val BASE_PATH = "/tasklist/v1"
+    /** Every version of the provider API lives below this path, and all of it requires the task manager's token. */
+    const val NAMESPACE = "/tasklist"
+    const val BASE_PATH = "$NAMESPACE/v1"
     const val TASK_FORM = "$BASE_PATH/tasks/{userTaskKey}/form"
     const val TASK_DRAFT = "$BASE_PATH/tasks/{userTaskKey}/draft"
     const val TASK_COMPLETION = "$BASE_PATH/tasks/{userTaskKey}/completion"
