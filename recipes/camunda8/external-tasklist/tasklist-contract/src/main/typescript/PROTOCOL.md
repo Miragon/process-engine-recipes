@@ -29,5 +29,6 @@ Every message is an object `{protocol: "tasklist-form", version: 1, type, payloa
 - The frame accepts a message only if `event.source` is `window.parent` (`readHostMessage`).
 - Both sides post with target origin `"*"`. An opaque origin cannot be named, and `frame-ancestors 'self'` limits who can embed the frame.
 - The host sends `init` once per `ready`. While `readOnly` is set, for example after the task was canceled, it answers `submit` and `draft` with `ok: false` and sends nothing.
+- A frame sends one `submit` or `draft` at a time and waits for its `result`. The host ignores any that arrive in the meantime.
 - One bundle per application serves all its HTML forms and picks the view by `formRef`.
 - A breaking change of this protocol increments `version`. Hosts and frames ignore messages of other versions.

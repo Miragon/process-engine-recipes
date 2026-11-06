@@ -30,7 +30,7 @@ Ledger is denser but hides the work behind a drawer; Workbench focuses on one ta
 | Mockup | Implementation |
 | --- | --- |
 | Top bar: comet and "Central tasklist", search, "New order", user switcher | `desk/TopBar.tsx`. The search sets `q`; the start action lists the start forms of all applications (one button, or a menu for several); the switcher offers the task manager's demo users and remembers the choice in the browser. |
-| Filter rail with counts | `desk/FilterRail.tsx`. Assignment, Domain, State and Candidate group from `GET /api/tasks/facets`, the counts of Mine and Unassigned from list totals. The selected entry has the 2px indicator. All filters live in the query string. |
+| Filter rail with counts | `desk/FilterRail.tsx`. Assignment, Domain, State and Candidate group from `GET /api/tasks/facets`, the counts per assignment included. The selected entry has the 2px indicator. All filters live in the query string. |
 | Two-line rows, selected row, "Newest first" | `desk/TaskList.tsx`. Name, subject, domain chip with dot, candidate group, due date, avatar, relative time, "High" badge; a sort menu; the list is a listbox (Up, Down, Home, End, Enter). |
 | Detail: header, facts, form, action bar, history | `desk/TaskDetail.tsx` and its parts. Candidates change priority and due date in place. Unclaimed tasks show the claim card, the assignee the form; the action bar offers Claim or Unclaim, Save draft and Complete task as the task allows. |
 | *Check payment* as a form of the tasklist | `forms/`. JSON Forms with the vanilla renderers in the Miragon style; field errors of a refused completion (422) appear at their controls. |

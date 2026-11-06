@@ -24,7 +24,8 @@ interface FormFrameProps {
 /**
  * The HTML form of a process application in an iframe with `sandbox="allow-scripts"` only: an opaque origin that
  * cannot reach the tasklist's DOM, storage or API. Everything it shows arrives in `init`; it answers with `submit`.
- * The host re-creates the frame (React `key`) when the form turns read-only, so a new `ready` brings a new `init`.
+ * To show a form that turned read-only, the host re-creates the frame (React `key`), so a new `ready` brings a new
+ * `init`. A frame that keeps running gets `ok: false` for anything it sends while the form is read-only.
  */
 export function FormFrame({ domain, domainLabel, init, title, onSubmit, onDraft }: FormFrameProps) {
   const frame = useRef<HTMLIFrameElement>(null);
