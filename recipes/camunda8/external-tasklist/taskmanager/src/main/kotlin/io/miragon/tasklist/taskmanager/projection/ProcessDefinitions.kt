@@ -20,14 +20,18 @@ class ProcessDefinitions(private val camunda: CamundaClient) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val cache = ConcurrentHashMap<Long, Map<String, TaskDetails>>()
 
-    /** Returns null while Camunda's search does not know the definition yet; the caller tries again later. */
+    /** Details from the cache only; never calls Camunda, so the listener handler can use it. */
+    fun cachedTask(processDefinitionKey: Long, elementId: String): TaskDetails? = cache[processDefinitionKey]?.get(elementId)
+
+    /** Details of a task, loading the definition if needed; null while Camunda's search does not know it yet. */
     fun task(processDefinitionKey: Long, processDefinitionId: String, elementId: String): TaskDetails? =
-        definition(processDefinitionKey, processDefinitionId)?.get(elementId)
+        load(processDefinitionKey, processDefinitionId)?.get(elementId)
 
-    private fun definition(key: Long, processId: String): Map<String, TaskDetails>? =
-        cache[key] ?: load(key, processId)?.also { cache[key] = it }
+    /** All user tasks of a definition by element ID, from the cache or Camunda; null while the search does not know it. */
+    fun load(key: Long, processId: String): Map<String, TaskDetails>? =
+        cache[key] ?: fetch(key, processId)?.also { cache[key] = it }
 
-    private fun load(key: Long, processId: String): Map<String, TaskDetails>? =
+    private fun fetch(key: Long, processId: String): Map<String, TaskDetails>? =
         try {
             val xml = camunda.newProcessDefinitionGetXmlRequest(key)
                 .requestTimeout(Duration.ofSeconds(2))

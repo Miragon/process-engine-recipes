@@ -15,7 +15,7 @@ data class TaskmanagerProperties(
 ) {
     data class Listener(
         val id: String = "taskmanager-projection",
-        val retries: Int = 5,
+        val retries: Int = 10,
         val priority: Int = 0,
     ) {
         /** Job type of the listener; a constant because `@JobWorker` does not resolve placeholders. */
@@ -30,8 +30,8 @@ data class TaskmanagerProperties(
         val interval: Duration = Duration.ofSeconds(30),
         /** Only tasks untouched for this long are checked, so Camunda's search has caught up. */
         val lag: Duration = Duration.ofSeconds(10),
-        /** A task Camunda does not know after this long is treated as canceled. */
-        val missingGrace: Duration = Duration.ofMinutes(2),
+        /** A task Camunda's search does not know after this long is treated as canceled. */
+        val missingGrace: Duration = Duration.ofMinutes(30),
         val batchSize: Int = 100,
     )
 

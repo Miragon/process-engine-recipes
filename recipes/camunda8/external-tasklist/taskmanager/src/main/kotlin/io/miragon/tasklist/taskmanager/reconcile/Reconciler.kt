@@ -23,7 +23,8 @@ import java.time.OffsetDateTime
  * Compares the projection with Camunda's search and corrects what the listener cannot see:
  * tasks ended by a process instance modification (it skips the canceling listener) and tasks
  * created before the listener was registered. Search results lag behind, so it only looks at
- * tasks that have been quiet for a while and never reopens a closed one.
+ * tasks that have been quiet for a while, never reopens a closed one, and treats a task Camunda
+ * does not know as gone only after a long grace period; a later listener event still corrects it.
  */
 @Component
 class Reconciler(
@@ -34,6 +35,12 @@ class Reconciler(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val settings = properties.reconciler
+
+    /** Tasks created after this were reported by the listener, which was registered at startup. */
+    private val startedAt = OffsetDateTime.now()
+
+    @Volatile
+    private var discovered = false
 
     @Scheduled(fixedDelayString = "\${taskmanager.reconciler.interval}", initialDelayString = "\${taskmanager.reconciler.interval}")
     fun run() {
@@ -46,9 +53,17 @@ class Reconciler(
 
     /** Returns the number of corrected tasks. */
     fun reconcileOnce(now: OffsetDateTime = OffsetDateTime.now()): Int {
-        val quietSince = now.minus(settings.lag)
-        val corrected = tasks.findOpenToVerify(quietSince, settings.batchSize).count { verify(it, now) }
-        return corrected + discoverMissing(quietSince, now)
+        val corrected = tasks.findOpenToVerify(now.minus(settings.lag), settings.batchSize).count { task ->
+            try {
+                verify(task, now)
+            } catch (e: RuntimeException) {
+                // One task Camunda cannot answer for must not hold up the others; it moves to the back of the queue.
+                log.warn("Checking task {} failed: {}", task.userTaskKey, e.message)
+                tasks.markVerified(task.userTaskKey, now)
+                false
+            }
+        }
+        return corrected + if (discovered) 0 else discoverMissing(now)
     }
 
     @EventListener
@@ -80,16 +95,30 @@ class Reconciler(
         }
     }
 
-    private fun discoverMissing(quietSince: OffsetDateTime, now: OffsetDateTime): Int =
-        camunda.newUserTaskSearchRequest()
-            .filter { it.state(UserTaskState.CREATED) }
-            .sort { it.creationDate().asc() }
-            .page { it.limit(settings.batchSize) }
-            .send()
-            .join()
-            .items()
-            .filter { it.creationDate.isBefore(quietSince) && !tasks.exists(it.userTaskKey) }
-            .count { projection.insertMissing(it.toCamundaTask(), now) }
+    /**
+     * Tasks the listener never reported were created before this task manager registered it. They are read once,
+     * page by page, after startup; later tasks always come through the listener.
+     */
+    private fun discoverMissing(now: OffsetDateTime): Int {
+        var found = 0
+        var from = 0
+        while (true) {
+            val page = camunda.newUserTaskSearchRequest()
+                .filter { it.state(UserTaskState.CREATED).creationDate { date -> date.lt(startedAt) } }
+                .sort { it.creationDate().asc() }
+                .page { it.from(from).limit(settings.batchSize) }
+                .send()
+                .join()
+                .items()
+            val known = tasks.existingKeys(page.map { it.userTaskKey })
+            found += page.filterNot { it.userTaskKey in known }.count { projection.insertMissing(it.toCamundaTask(), now) }
+            if (page.size < settings.batchSize) break
+            from += page.size
+        }
+        discovered = true
+        if (found > 0) log.info("Discovered {} user tasks that were created before the listener was registered", found)
+        return found
+    }
 
     private fun UserTask.toCamundaTask() = CamundaTask(
         userTaskKey = userTaskKey,

@@ -2,7 +2,8 @@ package io.miragon.tasklist.taskmanager.api
 
 import io.camunda.client.CamundaClient
 import io.camunda.client.api.command.ClientHttpException
-import io.camunda.client.api.command.ProblemException
+import io.miragon.tasklist.contract.provider.denialReason
+import io.miragon.tasklist.contract.provider.problemDetail
 import org.springframework.stereotype.Component
 
 /**
@@ -34,17 +35,11 @@ class TaskCommands(private val camunda: CamundaClient) {
             command()
             true
         } catch (e: ClientHttpException) {
-            val detail = (e as? ProblemException)?.details()?.detail ?: e.message.orEmpty()
             when (e.code()) {
                 404 -> throw TaskNotActive()
-                409 -> throw DENIAL.find(detail)?.let { ApiProblem(422, "DENIED", it.groupValues[1]) }
-                    ?: ApiProblem(409, "CONFLICT", detail)
+                409 -> throw e.denialReason()?.let { ApiProblem(422, "DENIED", it) } ?: ApiProblem(409, "CONFLICT", e.problemDetail())
                 504 -> false
                 else -> throw e
             }
         }
-
-    private companion object {
-        val DENIAL = Regex("""Reason to deny: '(.*)'""", RegexOption.DOT_MATCHES_ALL)
-    }
 }

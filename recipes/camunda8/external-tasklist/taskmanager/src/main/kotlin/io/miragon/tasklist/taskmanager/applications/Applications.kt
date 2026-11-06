@@ -104,6 +104,7 @@ class ProviderClient(
         val body = runCatching { mapper.readValue(e.responseBodyAsString, ProviderProblemBody::class.java) }.getOrNull()
         return when {
             status == 401 -> ApiProblem(502, "APPLICATION_REJECTED_TOKEN", "The $label application rejected the task manager's token.")
+            status == 503 -> ApiProblem(503, body?.code ?: "UNAVAILABLE", body?.detail ?: "The $label application is not ready. Try again in a moment.", retryAfterSeconds = 5)
             status >= 500 -> ApiProblem(502, "APPLICATION_ERROR", "The $label application failed: ${body?.detail ?: e.statusText}")
             else -> ApiProblem(status, body?.code ?: "APPLICATION_REJECTED", body?.detail ?: e.statusText, body?.errors.orEmpty())
         }

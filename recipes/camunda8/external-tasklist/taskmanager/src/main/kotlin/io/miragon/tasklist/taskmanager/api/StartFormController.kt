@@ -4,11 +4,10 @@ import io.miragon.tasklist.contract.FormView
 import io.miragon.tasklist.contract.StartFormRequest
 import io.miragon.tasklist.contract.StartResult
 import io.miragon.tasklist.contract.StartSubmission
-import io.miragon.tasklist.contract.TasklistApi
 import io.miragon.tasklist.contract.UserContext
+import io.miragon.tasklist.contract.provider.formFrame
 import io.miragon.tasklist.taskmanager.applications.Applications
 import org.slf4j.LoggerFactory
-import org.springframework.http.CacheControl
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -56,11 +55,5 @@ class StartFormController(private val applications: Applications) {
      */
     @GetMapping("/forms/{domain}/{formRef}/frame", produces = [MediaType.TEXT_HTML_VALUE])
     fun frame(@PathVariable domain: String, @PathVariable formRef: String): ResponseEntity<ByteArray> =
-        ResponseEntity.ok()
-            .header("Content-Security-Policy", TasklistApi.FRAME_CSP)
-            .header("X-Content-Type-Options", "nosniff")
-            .header("Referrer-Policy", "no-referrer")
-            .cacheControl(CacheControl.noCache())
-            .contentType(MediaType.TEXT_HTML)
-            .body(applications.client(domain).frame(formRef))
+        formFrame(applications.client(domain).frame(formRef))
 }

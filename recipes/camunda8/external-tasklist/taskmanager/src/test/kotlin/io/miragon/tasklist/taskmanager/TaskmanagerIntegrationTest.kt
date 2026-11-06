@@ -157,7 +157,7 @@ class TaskmanagerIntegrationTest(
         ApiSnapshot.verify(call(HttpMethod.GET, "/v3/api-docs", user = null).body!!, "taskmanager.json", mapper)
     }
 
-    /** Starts a review and returns the key of its user task once the projection has it. */
+    /** Starts a review and returns the key of its user task once the projection has it, form reference included. */
     private fun startReview(documentId: String): String {
         val instance = camunda.newCreateInstanceCommand()
             .bpmnProcessId("review-process")
@@ -171,6 +171,8 @@ class TaskmanagerIntegrationTest(
         await.atMost(Duration.ofSeconds(30)) untilAsserted {
             val items = call(HttpMethod.GET, "/api/tasks?q=$documentId").json()["items"]
             assertThat(items.size()).isEqualTo(1)
+            // The listener stores the task at once; name and form reference of a new definition follow from the BPMN.
+            assertThat(items[0]["formRef"].isNull).isFalse()
             key = items[0]["userTaskKey"].asString()
         }
         return key

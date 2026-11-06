@@ -29,14 +29,15 @@ camunda:
 taskmanager:
   listener:
     id: taskmanager-projection
-    retries: 5
+    # A listener job that fails waits 2 s, 4 s, ... up to 1 min before the next attempt.
+    retries: 10
     priority: 0
   # Calls to the applications wait for Camunda (15 s) plus the listener chain.
   provider-timeout: 25s
   reconciler:
     interval: 30s
     lag: 10s
-    missing-grace: 2m
+    missing-grace: 30m
     batch-size: 100
   applications:
     order:

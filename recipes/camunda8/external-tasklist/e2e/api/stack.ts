@@ -52,7 +52,7 @@ export async function placeOrder(tasklist: APIRequestContext, customer: string):
   return started.businessId;
 }
 
-/** Waits until the projection shows exactly one task matching the query and returns it. */
+/** Waits until the projection shows a task matching the query, with its form reference, and returns it. */
 export async function waitForTask(
   tasklist: APIRequestContext,
   query: Record<string, string>,
@@ -62,7 +62,7 @@ export async function waitForTask(
   await expect
     .poll(async () => {
       const page = await json<{ items: Task[] }>(await tasklist.get('/api/tasks', { params: { state: 'ALL', ...query } }));
-      found = page.items.find(matches);
+      found = page.items.find((task) => task.formRef !== null && matches(task));
       return found !== undefined;
     }, { timeout: 60_000 })
     .toBe(true);

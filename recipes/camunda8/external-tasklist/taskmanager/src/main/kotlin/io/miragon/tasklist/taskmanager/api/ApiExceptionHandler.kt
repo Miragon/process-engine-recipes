@@ -2,6 +2,7 @@ package io.miragon.tasklist.taskmanager.api
 
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.HttpStatusCode
 import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
@@ -14,7 +15,7 @@ class ApiExceptionHandler {
 
     @ExceptionHandler(ApiProblem::class)
     fun handle(problem: ApiProblem): ResponseEntity<ProblemDetail> {
-        val body = ProblemDetail.forStatusAndDetail(HttpStatus.valueOf(problem.status), problem.message).apply {
+        val body = ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(problem.status), problem.message).apply {
             setProperty("code", problem.code)
             if (problem.errors.isNotEmpty()) setProperty("errors", problem.errors)
         }

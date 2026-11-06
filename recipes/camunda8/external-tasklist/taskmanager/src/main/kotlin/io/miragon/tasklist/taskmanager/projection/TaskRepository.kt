@@ -11,8 +11,9 @@ import java.time.OffsetDateTime
 class TaskRepository(private val jdbc: JdbcClient) {
 
     /**
-     * Applies a listener event. Returns false for a redelivered or outdated job and for a task that is
-     * already closed: the `last_job_key` guard keeps the projection idempotent.
+     * Applies a listener event. Returns false for a redelivered or outdated job and for a task the listener closed:
+     * the `last_job_key` guard keeps the projection idempotent. A listener event may still correct a task the
+     * reconciler closed, because the reconciler only judges by Camunda's eventually consistent search.
      */
     fun upsert(event: UserTaskEvent, details: TaskDetails?, now: OffsetDateTime): Boolean {
         val closed = event.type.state != TaskState.OPEN
@@ -44,7 +45,8 @@ class TaskRepository(private val jdbc: JdbcClient) {
                 closed_by = EXCLUDED.closed_by,
                 last_job_key = EXCLUDED.last_job_key,
                 verified_at = EXCLUDED.verified_at
-            WHERE user_task.last_job_key < EXCLUDED.last_job_key AND user_task.state = 'OPEN'
+            WHERE user_task.last_job_key < EXCLUDED.last_job_key
+                AND (user_task.state = 'OPEN' OR user_task.closed_by = 'RECONCILER')
             """,
         )
             .param("userTaskKey", event.userTaskKey)
@@ -178,6 +180,37 @@ class TaskRepository(private val jdbc: JdbcClient) {
             .update()
     }
 
+    /** Fills in the details of all tasks of a definition that lack them; returns the changed tasks. */
+    fun fillDetailsOfDefinition(processDefinitionKey: Long, details: Map<String, TaskDetails>): List<TaskChanged> =
+        details.flatMap { (elementId, task) ->
+            jdbc.sql(
+                """
+                UPDATE user_task SET name = COALESCE(name, :name), process_name = COALESCE(process_name, :processName),
+                    form_ref = COALESCE(form_ref, :formRef)
+                WHERE process_definition_key = :processDefinitionKey AND element_id = :elementId
+                    AND (name IS NULL OR process_name IS NULL OR form_ref IS NULL)
+                RETURNING user_task_key, state, domain
+                """,
+            )
+                .param("name", task.name, Types.VARCHAR)
+                .param("processName", task.processName, Types.VARCHAR)
+                .param("formRef", task.formRef, Types.VARCHAR)
+                .param("processDefinitionKey", processDefinitionKey)
+                .param("elementId", elementId)
+                .query { rs, _ -> TaskChanged(rs.getLong(1), TaskState.valueOf(rs.getString(2)), rs.getString(3)) }
+                .list()
+        }
+
+    fun existingKeys(userTaskKeys: List<Long>): Set<Long> =
+        if (userTaskKeys.isEmpty()) {
+            emptySet()
+        } else {
+            jdbc.sql("SELECT user_task_key FROM user_task WHERE user_task_key = ANY(:keys)")
+                .param("keys", userTaskKeys.toTypedArray())
+                .query { rs, _ -> rs.getLong(1) }
+                .set()
+        }
+
     fun find(userTaskKey: Long): UserTaskRow? =
         jdbc.sql("SELECT * FROM user_task WHERE user_task_key = :userTaskKey")
             .param("userTaskKey", userTaskKey)
@@ -239,8 +272,8 @@ class TaskRepository(private val jdbc: JdbcClient) {
             params["dueBefore"] = it
         }
         query.q?.takeIf { it.isNotBlank() }?.let {
-            where += "(name ILIKE :q OR subject ILIKE :q OR business_id ILIKE :q OR element_id ILIKE :q)"
-            params["q"] = "%${it.trim()}%"
+            where += "(name ILIKE :q ESCAPE '\\' OR subject ILIKE :q ESCAPE '\\' OR business_id ILIKE :q ESCAPE '\\' OR element_id ILIKE :q ESCAPE '\\')"
+            params["q"] = "%" + it.trim().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
         }
         val condition = if (where.isEmpty()) "" else "WHERE " + where.joinToString(" AND ")
         val total = jdbc.sql("SELECT count(*) FROM user_task $condition")

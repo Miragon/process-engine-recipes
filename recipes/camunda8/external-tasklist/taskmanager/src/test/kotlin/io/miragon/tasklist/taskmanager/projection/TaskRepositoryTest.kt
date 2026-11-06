@@ -59,6 +59,43 @@ class TaskRepositoryTest(@Autowired private val tasks: TaskRepository) {
     }
 
     @Test
+    fun `lets a later listener event correct a task the reconciler closed`() {
+        val created = event(EventType.CREATING, jobKey = 10)
+        tasks.upsert(created, details, now)
+        tasks.closeByReconciler(created.userTaskKey, TaskState.CANCELED, expectedJobKey = 10, now)
+
+        assertThat(tasks.upsert(event(EventType.ASSIGNING, jobKey = 20, userTaskKey = created.userTaskKey, assignee = "bob"), details, now)).isTrue()
+
+        val row = tasks.find(created.userTaskKey)!!
+        assertThat(row.state).isEqualTo(TaskState.OPEN)
+        assertThat(row.assignee).isEqualTo("bob")
+        assertThat(row.closedBy).isNull()
+    }
+
+    @Test
+    fun `searches text literally`() {
+        val percent = event(EventType.CREATING, jobKey = 10, subject = "Discount 100% · Order ORD-7")
+        val other = event(EventType.CREATING, jobKey = 10, subject = "Order ORD-8")
+        listOf(percent, other).forEach { tasks.upsert(it, details, now) }
+
+        assertThat(tasks.search(TaskQuery(q = "100%")).first.map { it.userTaskKey }).containsExactly(percent.userTaskKey)
+        assertThat(tasks.search(TaskQuery(q = "%")).first.map { it.userTaskKey }).containsExactly(percent.userTaskKey)
+        assertThat(tasks.search(TaskQuery(q = "ORD_8")).first).isEmpty()
+    }
+
+    @Test
+    fun `fills in the details of a definition once the BPMN is known`() {
+        val bare = event(EventType.CREATING, jobKey = 10)
+        tasks.upsert(bare, null, now)
+
+        val changed = tasks.fillDetailsOfDefinition(bare.processDefinitionKey, mapOf(bare.elementId to details))
+
+        assertThat(changed.map { it.userTaskKey }).contains(bare.userTaskKey)
+        assertThat(tasks.find(bare.userTaskKey)!!.formRef).isEqualTo("check-order@1")
+        assertThat(tasks.existingKeys(listOf(bare.userTaskKey, -1))).containsExactly(bare.userTaskKey)
+    }
+
+    @Test
     fun `filters by domain, assignment, group, state and text`() {
         val order = event(EventType.CREATING, jobKey = 10, domain = "order", groups = listOf("sales"), subject = "Order ORD-1001 · Alice")
         val payment = event(EventType.CREATING, jobKey = 10, domain = "payment", groups = listOf("finance"), assignee = "bob")
