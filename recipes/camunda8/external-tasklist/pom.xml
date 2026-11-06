@@ -18,6 +18,7 @@
 
     <modules>
         <module>tasklist-contract</module>
+        <module>taskmanager</module>
     </modules>
 
     <properties>
