@@ -89,7 +89,7 @@ Every process application offers this API to the task manager. Module `tasklist-
 
 Applications load their own entities by `businessId` and bind the submitted `data` to a type with only the fields the form may change. Any other field is ignored.
 
-**Errors** are `application/problem+json` with `code` and, for validation, `errors: [{field, message}]`:
+**Errors** are `application/problem+json` with `code` and, for validation, `errors: [{field, message}]`. `field` is the property path in the form data with dots, for example `customer.email` or `amountReceived`:
 
 | Status | `code` | Meaning |
 | --- | --- | --- |
@@ -98,7 +98,7 @@ Applications load their own entities by `businessId` and bind the submitted `dat
 | 404 | `FORM_NOT_FOUND` | The application does not know this form reference or start form |
 | 405 | `DRAFT_NOT_SUPPORTED` | The form keeps no drafts |
 | 409 | `TASK_NOT_ACTIVE` | The task was completed or canceled in the meantime |
-| 409 | `CONFLICT` | A domain rule forbids the change, for example an order that was already canceled |
+| 409 | `CONFLICT` | A domain rule forbids the change, for example a payment that was decided already |
 | 422 | `VALIDATION_FAILED` | The data breaks a rule of the form; `errors` names the fields |
 
 **Completing a task** is the application's job. It validates, stores its domain change and completes the user task inside one transaction (`CamundaClient.completeUserTask` from the contract module):
@@ -141,13 +141,94 @@ Commands (claim, unclaim, update, complete) return only after Camunda has run th
 
 ### 5. APIs between the services
 
-Services never integrate through Camunda: each one correlates messages only into its own processes. They call each other over REST; the OpenAPI documents are in [`api/`](api/).
+Services never integrate through Camunda: each one correlates messages only into its own processes. They call each other over REST; the OpenAPI documents are in [`api/`](api/). Amounts are JSON numbers (`129.90` arrives as `129.9`), so compare them numerically.
 
 | Call | Answer |
 | --- | --- |
-| `POST payment-app/api/v1/payments {orderId, amount, currency, customer: {name, email}, callbackUrl}` | `201 {paymentId}` new; `200` same request again; `409` same order with another amount; `400` callback host not allowed |
-| `POST order-app/api/v1/orders/{orderId}/payment-result {paymentId, status: PAID \| REJECTED, reason}` | `204` applied, also when repeated; `409` contradicts an earlier result; `503` the order process does not wait for a result yet (retry) |
+| `POST payment-app/api/v1/payments {orderId, amount, currency, customer: {name, email}, callbackUrl}` | `201 {paymentId}` new; `200` the same order, amount and currency again; `409 {paymentId}` the same order with another amount or currency; `400 {errors}` invalid, or a callback host outside `payment.callback.allowed-hosts`; `503` Camunda refused the start, nothing was stored (retry) |
+| `GET payment-app/api/v1/payments/{paymentId}` | `200` the payment; `404` unknown |
+| `POST order-app/api/v1/orders/{orderId}/payment-result {paymentId, status: PAID \| REJECTED, reason}` | `204` applied, also when repeated; `409` contradicts an earlier result, names another payment, or the order no longer waits for a payment (for example declined); `503` the order process does not wait for a result yet (retry) |
 | `POST order-app/api/v1/orders/{orderId}/cancellation {reason}` | `204` canceled; `409` the order can no longer be canceled |
 | `POST order-app/api/v1/orders {customer, items}` | `201 {orderId, processInstanceKey}`, the same as the start form, for scripts |
 
-The calling side is always a job worker. It completes the job on `2xx`. On `400`/`409` it fails the job without retries, which raises an incident for a human. On `5xx` or a timeout it fails the job with one retry less and exponential backoff.
+The calling side is always a job worker. It completes the job on `2xx`. On `5xx`, `503` or a timeout it fails the job with one retry less and exponential backoff. Every other answer, `400` and `409` included, fails the job without retries: that raises an incident for a human, with the answer as its message (the workers complete and fail their jobs themselves, so the incident shows the reason and not a stack trace). Redirects are never followed.
+
+## Task projection
+
+The task manager keeps one row per user task in its own PostgreSQL database (`taskmanager/src/main/resources/db/migration/V1__projection.sql`):
+
+| Column | Source | Used for |
+| --- | --- | --- |
+| `user_task_key`, process and element keys, `process_definition_id`, version, `element_id`, `tenant_id` | listener job | identity, routing, the `TaskContext` |
+| `name`, `process_name`, `form_ref` | the BPMN XML of the process definition (cached per key), else `GET /v2/user-tasks/{key}` | display, the form to load |
+| `domain` | task header `domain`, else the process ID | routing to the application, filter |
+| `business_id`, `subject` | the job's `businessId` and variable `subject` | display, search |
+| `state` (`OPEN`, `COMPLETED`, `CANCELED`), `assignee`, `candidate_groups`, `candidate_users`, `priority`, `due_date`, `follow_up_date` | every listener job carries the whole task | lifecycle, filters, permissions |
+| `created_at`, `updated_at`, `closed_at`, `closed_by` (`LISTENER`, `RECONCILER`) | the task manager | sorting, history |
+| `last_job_key`, `verified_at` | the task manager | idempotency, reconciliation |
+
+`user_task_event` keeps the history: one row per listener job (unique `job_key`) or reconciler correction.
+
+**What the projection does not hold.** Variables, form data and domain data stay with Camunda and the applications. The task manager only reads the one variable `subject`, and the applications load their entities by business ID when they render or complete a form. Schemas and HTML of the forms are never stored.
+
+**Idempotency.** Each event is one upsert that only applies if the job key is larger than `last_job_key` and the task is still open. The listener jobs of one task run strictly one after another with growing keys, so a redelivered job (the task manager crashed after the commit, before completing the job) or an outdated one changes nothing. A closed task never reopens.
+
+## Lifecycle
+
+| Trigger | Listener event | Projection |
+| --- | --- | --- |
+| The process reaches the user task | `creating` | insert `OPEN` |
+| Claim and unclaim through the task manager | `assigning` (`action` `claim` or `unassign`) | `assignee` |
+| Update of priority, due date or candidate groups | `updating` (`changedAttributes`) | the fields |
+| The application completes the task | `completing` | `COMPLETED` |
+| Interrupting boundary event, event subprocess, process instance canceled | `canceling` | `CANCELED` |
+| Process instance modification terminates the task | none | the reconciler sets `CANCELED`, `closed_by = RECONCILER` |
+
+User task listeners block: Camunda keeps the task in `CREATING`, `ASSIGNING`, `UPDATING`, `COMPLETING` or `CANCELING` until the listener job is completed. An interrupting boundary event waits for the `canceling` job too, so the projection is updated before the process moves on. Two consequences:
+
+- **The task manager is on the critical path of every user task in the cluster.** While it is down, new tasks stay in `CREATING`, claims and completions time out after 15 s and canceled tasks stay in `CANCELING`. Nothing is lost: when it comes back, it handles the waiting jobs. After 5 failed attempts a job raises an incident that you resolve in Operate. Its health is `DOWN` until the listener is registered.
+- **Commands return after the listener ran.** The REST commands for claim, update and completion wait for the listeners, the task manager's own one included. When the application answers the completion with `204`, the projection already says `COMPLETED`: the tasklist needs no polling. When the listeners take longer than Camunda's 15 s request timeout, the command answers `504`, but Camunda still applies it once the listeners finish. The task manager and the applications pass this on as `202`.
+
+**Limits of listeners**
+
+- A process instance modification does not trigger `canceling`: "Process instance modification does not trigger the canceling event" (Camunda docs). The reconciler closes such tasks.
+- Listeners cannot deny `creating` or `canceling`, and a listener job is completed without variables.
+- The order of listeners is: global listeners, then the listeners of the model, then global listeners with `afterNonGlobal`. The task manager's listener is the last one, so it sees the final state of each transition, including corrections and denials of model listeners.
+
+**Reconciler.** Every 30 s (`taskmanager.reconciler.interval`) it checks open tasks that were quiet for 10 s (`lag`) against `GET /v2/user-tasks/{key}`, oldest check first. A task Camunda reports as completed or canceled is closed; a task Camunda no longer knows is closed as canceled after 2 minutes (`missing-grace`). It also inserts open tasks the listener never reported, for example tasks created before the task manager registered its listener, and fills in missing names and form references. It closes a task only if no listener event arrived in between, and never reopens one.
+
+## Failure handling and consistency
+
+| Situation | What happens |
+| --- | --- |
+| The browser sends fields a form may not change | The application binds the data to a type with only the editable fields; the rest is ignored. |
+| A task is completed twice, or after it was canceled | The task manager refuses because its projection is closed (`409 TASK_NOT_ACTIVE`). If the projection was behind, Camunda answers `404`, the application rolls back and answers `409`, and the task manager checks the task at once. |
+| The application validation fails | `422` with field errors; nothing changes in Camunda. |
+| Camunda is slower than 15 s | `202`; the change is applied later. |
+| An application is down | `503` with `Retry-After`; the projection is unchanged. |
+| The form reference is not known yet | `503 SYNCING` with `Retry-After`; the task manager looks it up in the model, then in Camunda's search, and the reconciler fills it in. |
+| A service call between the applications fails | The job worker retries with backoff, then raises an incident. |
+| A listener job is delivered again | The `last_job_key` guard ignores it. |
+
+**Two systems, one action.** The applications write their database and Camunda in one action: a completion stores the domain change and completes the user task, the payment API stores the payment and starts the process. The database transaction commits only if Camunda accepted the command, so a refusal leaves nothing behind. If Camunda accepts but its answer is lost, the transaction rolls back although Camunda went on: for example a payment process runs without a payment row. Production systems close that gap with an outbox or by making the Camunda side idempotent.
+
+**Eventually consistent reads.** Camunda's search, the BPMN XML and the user task details come from Elasticsearch and lag about a second behind. The projection itself is updated synchronously by the listener, so the task list never waits for Elasticsearch. Only the reconciler and the lazy form reference lookup read Camunda's search, and both tolerate the lag.
+
+## Decisions
+
+| Decision | Why | Instead of |
+| --- | --- | --- |
+| Camunda user tasks with one global user task listener | Every lifecycle event, cancellation included, arrives in order and before the task moves on; nothing to declare in the models; works in SaaS | job-worker-based user tasks (deprecated, need polling), a custom exporter (not in SaaS, can stall the broker), polling the search API (lag, no cancel event) |
+| A projection in the task manager | Fast filtering on domain, groups, assignment and text, routing data and history independent of Camunda's search | querying Camunda's search for every list request |
+| Forms owned by the applications | The application that owns the data also owns its form, its validation and the completion | Camunda Forms rendered by the tasklist (see the README's Variations) |
+| The task manager as the only backend of the tasklist | The browser never talks to the applications, so they can trust the `TaskContext` (#158) | the browser loading forms from each application |
+| HTML forms in a sandboxed iframe with their own CSP | A micro-frontend cannot read the tasklist or send data anywhere (#159) | trusting the application's script in the tasklist's origin |
+| REST with OpenAPI between the services | A standard, versioned API; Camunda only orchestrates inside one service | Camunda messages across services, Kafka (see Variations) |
+| A static registry of applications | Explicit: the task manager only forwards to configured applications | self-registration (see Variations) |
+
+## Limits
+
+- **No authentication.** The demo user travels in `X-Demo-User`, and the tokens between the task manager and the applications are static. Use your identity provider's tokens for the user and OAuth2 client credentials between the services.
+- **One task manager instance.** Server-sent events reach only the clients of the instance that applied the change. The projection itself is safe for several instances; fan the events out through PostgreSQL `LISTEN`/`NOTIFY` or a broker.
+- **Single tenant.** Tenant IDs are stored but not used for filtering or permissions.
+- **Demo data.** The databases and Camunda start empty with each `docker compose down -v`.

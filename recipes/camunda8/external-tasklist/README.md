@@ -1,68 +1,163 @@
-# zeebe-external-tasklist
+# camunda8-external-tasklist
 
-Camunda 8's Tasklist shows every user task in one place, but in a microservice landscape each service owns its process, its data and its forms. This recipe runs your own tasklist on Zeebe: a task manager collects the user tasks of all process applications, and each process application renders and completes its own tasks.
+You run several process applications on one Camunda 8 cluster, each with its own forms, rules and data, and want one tasklist for all their user tasks. This recipe adds a task manager that sees every user task of the cluster through a global user task listener, and a tasklist that shows the forms the applications provide.
 
-**Serves:** teams on Camunda 8 who need their own tasklist UI or task store across several process services.
+**Serves:** teams that run several self-contained process applications on Camunda 8.10 and want a single tasklist.
+
+![The task manager between the tasklist, Camunda 8.10 and the order and payment applications](images/architecture.png)
 
 ## Ingredients
 
 | Component | Version |
 | --- | --- |
-| Camunda 8 (Zeebe, Operate) | 8.5.6 (Operate 8.5.5) |
-| Spring Boot | 3.2.3 |
-| Kotlin | 2.0.0 |
-| Java | 17 |
+| Camunda 8 (orchestration cluster) | 8.10.9 |
+| Elasticsearch (Camunda's secondary storage) | 9.5.6 |
+| PostgreSQL | 18.6 |
+| Spring Boot | 4.1.2 |
+| Kotlin | 2.4.21 |
+| Java | 25 |
+| Node.js (downloaded by the build) | 26.13.0 |
+| React (micro-frontend of the order application) | 19.3 |
+| Playwright | 1.64.1 |
 
-You need a JDK 17, Maven, and Podman or Docker with Compose. The stack also starts Elasticsearch, Kafka and PostgreSQL. Versions are pinned in `pom.xml` and `stack/docker-compose.yml`.
+You need a JDK 25 and Docker or Podman with Compose and about 6 GB of memory for it. `./e2e.sh` also needs Node.js; the Maven build downloads its own. Camunda, Spring Boot and Kotlin are pinned in `pom.xml`, the images in `stack/docker-compose.yml`, the frontend and test packages in their `package.json`.
 
 ## How it works
 
-![Overview](images/overview.excalidraw.png)
+```
+Browser ── /api ──▶ Task manager :8090 ── /tasklist/v1 + token ──▶ Order app :8081, Payment app :8082
+                      ▲    │ claim, update, search                     │ deploy, workers, complete
+        listener jobs │    ▼                                            ▼
+                     Camunda 8.10.9 :8080 ◀─────────────────────────────┘   (Elasticsearch :9200)
+                      PostgreSQL: taskmanager | orders | payments
+```
 
-| Folder | What it does |
+1. **The applications model plain Camunda user tasks.** Each task names its form with `zeebe:formDefinition externalReference="check-order@1"` (*Custom form key* in the Modeler) and its application with the task header `domain`. The applications never call the task manager. The [BPMN conventions](docs/architecture.md#1-bpmn-conventions-for-a-process-application) list everything.
+2. **One global user task listener reports every task.** At startup the task manager registers a listener for all user task events in the cluster (`POST /v2/global-task-listeners`). Camunda hands each `creating`, `assigning`, `updating`, `completing` and `canceling` event to the task manager's job worker and waits for it. The worker writes the task into a PostgreSQL projection that the tasklist filters on.
+3. **Claim, unclaim and update go through Camunda's REST API.** They return after the listener ran, so the projection is already up to date.
+4. **Forms come from the application that owns the task.** The task manager forwards the form request with a `TaskContext` it builds from its projection. The application answers with a JSON Forms schema and data, or with an HTML micro-frontend. The micro-frontend runs in a sandboxed iframe and speaks a small [postMessage protocol](tasklist-contract/src/main/typescript/PROTOCOL.md).
+5. **The application validates and completes.** It stores its domain change and completes the user task in one transaction. Its answer (`204`, `422` with field errors, `409` when the task is gone) reaches the user unchanged.
+6. **A canceled task turns read-only at once.** An interrupting boundary event fires the `canceling` listener. The projection marks the task `CANCELED` and pushes a server-sent event. A completion attempt gets `409`.
+7. **A reconciler covers the rest.** It closes tasks that a process instance modification ended (that skips the `canceling` listener) and picks up tasks the listener never reported.
+
+| Folder | What it is |
 | --- | --- |
-| [`taskmanager`](taskmanager) | Stores user tasks and their variables in PostgreSQL, serves them to the tasklist and completes them on Zeebe. |
-| [`zeebe-user-task-exporter`](zeebe-user-task-exporter) | A Zeebe exporter that pushes user task and variable records to the task manager. |
-| [`tasklistApi`](tasklistApi) | The OpenAPI contract between tasklist and task manager. |
-| [`processes`](processes) | Two process applications, `order` and `payment`, talking to each other via Kafka. Each one serves the forms of its own tasks. |
-| [`apps/tasklist`](apps/tasklist) | The React tasklist. It loads the forms from the process application that owns the task. |
-| [`stack`](stack) | Compose stack with Zeebe, Operate, Elasticsearch, Kafka, PostgreSQL and an nginx in front of everything. |
+| [`tasklist-contract/`](tasklist-contract) | The contract between the task manager and the applications: `TaskContext`, `FormView`, the provider API `/tasklist/v1` with `@EnableTasklistProvider`, and the form protocol in TypeScript |
+| [`taskmanager/`](taskmanager) | Global listener, projection, the API of the tasklist (`/api`), forwarding to the applications, reconciler, server-sent events |
+| [`processes/order/`](processes/order) | Order application: the order process (with the interrupting boundary event on *Check order*), its React micro-frontend in `frontend/`, the JSON form of *Prepare delivery*, the orders API |
+| [`processes/payment/`](processes/payment) | Payment application: the payment process with reminder and overdue timers, the JSON form of *Check payment*, the payments API |
+| [`stack/`](stack) | Compose file with Camunda, Elasticsearch, PostgreSQL and the three services |
+| [`e2e/`](e2e) | Playwright specs that `./e2e.sh` runs against the stack |
+| [`docs/`](docs) | [Architecture and contracts](docs/architecture.md), [OpenAPI documents](docs/api), and the [history](docs/history) of the recipe |
 
-The task manager learns about user tasks in one of two ways, switched by `miranum.tm.exporter` (`TM_USE_EXPORTER`):
-
-1. **Job worker (default).** `UserTaskListener` subscribes to the job type `io.camunda.zeebe:userTask` and completes the job when the task is done.
-2. **Exporter.** The broker loads `zeebe-user-task-exporter`, which posts records to `/rest/user_task/*`. The task manager then completes the task with the user task command.
-
-![Task manager](images/taskmanager.excalidraw.png)
-
-![Process application](images/process_app.excalidraw.png)
+The order and payment applications talk to each other only through their REST APIs (`POST /api/v1/payments` with a callback URL, `POST /api/v1/orders/{id}/payment-result`). Each correlates Camunda messages only into its own process.
 
 ## Cook it
 
 ```bash
-mvn --batch-mode verify
-cd stack
-docker compose --profile prod up -d
+./mvnw -B -DskipTests package
+docker compose -f stack/docker-compose.yml up -d --wait
 ```
 
-Starting the stack may take a while. Then open:
+Place an order as Alice from sales and look at her tasks:
 
-- Tasklist: <http://localhost:8080>
-- Operate: <http://localhost:8081> (`demo` / `demo`)
+```bash
+curl -s -H 'X-Demo-User: alice' localhost:8090/api/start-forms/order/new-order/form   # the catalog: city-helmet, light-set, ...
+curl -s -X POST -H 'X-Demo-User: alice' -H 'Content-Type: application/json' \
+  localhost:8090/api/start-forms/order/new-order/submission \
+  -d '{"data": {"customer": {"name": "Anna Schmidt", "email": "anna@example.com", "address": "Lindwurmstr. 12, 80337 München"},
+       "items": [{"itemId": "city-helmet", "quantity": 1}, {"itemId": "light-set", "quantity": 1}]}}'
+curl -s -H 'X-Demo-User: alice' 'localhost:8090/api/tasks?domain=order'
+```
+
+The answer names the order (`"businessId": "ORD-1001"`). Cancel it while *Check order* is open and watch the task change to `CANCELED`:
+
+```bash
+curl -s -X POST -H 'Content-Type: application/json' localhost:8081/api/v1/orders/ORD-1001/cancellation -d '{"reason": "Changed my mind"}'
+curl -s -H 'X-Demo-User: alice' 'localhost:8090/api/tasks?state=CANCELED'
+```
+
+| URL | What |
+| --- | --- |
+| <http://localhost:8090/swagger-ui.html> | Task manager API |
+| <http://localhost:8080/operate> | Operate, log in with `demo` / `demo` |
+| <http://localhost:8081/swagger-ui.html>, <http://localhost:8082/swagger-ui.html> | Orders and payments APIs |
+
+| Demo user | Groups |
+| --- | --- |
+| `alice` | sales: *Check order* |
+| `bob` | finance: *Check payment* |
+| `carol` | warehouse: *Prepare delivery* |
+| `demo` | all three |
+
+`docker compose -f stack/docker-compose.yml down -v` removes all data. To run a service from your IDE, stop its container and start it with the defaults in its `application.yaml`.
 
 ## Taste test
 
-There is no end-to-end test yet. CI runs `mvn --batch-mode --update-snapshots verify`, which builds all modules and runs the task manager's unit tests.
+`./mvnw -B verify` (the `build` of `recipe.yaml`) runs:
+
+- the contract tests of the provider API: token, binding to the editable fields only, problem details, the frame's content security policy;
+- the projection tests on PostgreSQL: redeliveries and late listener jobs are ignored, closed tasks never reopen, the filters;
+- one Camunda Process Test class per service against Camunda 8.10.9 in Testcontainers:
+  - task manager: listener, claim, update, completion through the application, cancellation by a boundary event, modification plus reconciler;
+  - order: approval, decline, cancellation on *Check order*, payment results, delivery;
+  - payment: idempotent payments API, the timers, the callback with retries;
+- the OpenAPI documents in `docs/api` against the code;
+- lint, type check, tests and build of the micro-frontend.
+
+`./e2e.sh` builds the jars, starts the stack and runs the Playwright specs in `e2e/api`:
+
+| Spec | Proves |
+| --- | --- |
+| `order-to-delivery` | One order goes through *Check order* (micro-frontend, 422 without a reason), *Check payment* (JSON form, 422 for a wrong amount) and *Prepare delivery* (draft, 422, completion) across both applications |
+| `cancellation` | The customer's cancellation cancels the open task through the boundary event; it gets `CANCELED`, read-only and `409` on completion. A modification is closed by the reconciler |
+| `guards` | Only candidates claim, only the assignee completes, unknown users get `401`, the applications refuse calls without the task manager's token, read-only fields cannot be forged |
+| `filters` | Domain, candidate group, assignment, text search and facets over both applications |
+
+Set `KEEP_STACK=1` to keep the stack running after the test.
 
 ## Take it home
 
-- **Your own task store:** copy `taskmanager` and keep `tasklistApi` as its contract.
-- **Push instead of poll:** copy `zeebe-user-task-exporter` and register it in the broker as in [`stack/zeebe/exporter.yml`](stack/zeebe/exporter.yml): set `baseUrl` to your task manager and mount the jar into `/usr/local/zeebe/lib/`.
-- **Forms per service:** each process application exposes `/rest/task/load` and `/rest/task/complete`, and the task manager knows where to find it through `miranum.tm.metadata.process-application.<bpmnProcessId>.base-url`.
+**Join the tasklist with another process application:**
+
+1. Model the user tasks along the [BPMN conventions](docs/architecture.md#1-bpmn-conventions-for-a-process-application): `externalReference` with a versioned form reference, the task header `domain`, the `businessId` of the instance and an optional `subject` variable.
+2. Add `io.miragon.recipes:tasklist-contract`, put `@EnableTasklistProvider` on the application and write one `TaskFormHandler` per form version (and a `StartFormHandler` per start form). Set `tasklist.provider.token`; if it serves HTML forms, also set `tasklist.provider.frame-bundle`.
+3. Register it in the task manager: `taskmanager.applications.<domain>.label`, `.base-url` and `.token`.
+
+**Configuration of the task manager** (`taskmanager/src/main/resources/application.yaml`):
+
+| Property | Default | Meaning |
+| --- | --- | --- |
+| `taskmanager.listener.id` / `.retries` / `.priority` | `taskmanager-projection` / `5` / `0` | The global user task listener; its job type is `taskmanager.projection` |
+| `taskmanager.applications.<domain>.{label,base-url,token}` | order, payment | Applications the task manager forwards to |
+| `taskmanager.users.<id>.{name,groups}` | alice, bob, carol, demo | Demo users |
+| `taskmanager.provider-timeout` | `25s` | Read timeout for calls to the applications; above Camunda's 15 s |
+| `taskmanager.reconciler.{interval,lag,missing-grace,batch-size}` | `30s`, `10s`, `2m`, `100` | Reconciler |
+| `camunda.client.request-timeout` | `20s` | Above Camunda's 15 s, so a slow listener chain arrives as `504` |
 
 ## Kitchen notes
 
-- **The exporter is off by default.** To use it, uncomment the exporter lines of the `zeebe` service in `stack/docker-compose.yml` and set `TM_USE_EXPORTER` to `true` on the `taskmanager` service. Both switches must match, because the task manager completes tasks differently in each mode.
-- **The exporter delivers at least once.** It acknowledges a record only after the task manager answered. A 5xx answer makes the broker retry; a 4xx answer is logged and skipped. The task manager therefore treats repeated records as idempotent.
-- **The exporter reaches the task manager via the host.** `baseUrl` points to `host.docker.internal:8090`, as does nginx. On Linux, give the `zeebe` service the same `extra_hosts: host.docker.internal:host-gateway` entry that nginx has.
-- **The stack is for development only.** Security is disabled on Elasticsearch, and all services use demo credentials.
+- **Every user task in the cluster waits for the task manager.** The listener blocks each transition until its job is completed. While the task manager is down, tasks stay in `CREATING`, `ASSIGNING`, `COMPLETING` or `CANCELING`, and REST commands answer `504` after 15 s. Nothing is lost: the waiting jobs are handled when it is back. After 5 failed attempts a job raises an incident, which you resolve in Operate. Keep the listener handler to one database write; this one does nothing else.
+- **A process instance modification does not trigger `canceling`.** Camunda skips user task listeners when a modification terminates a task. The reconciler closes such tasks after about `interval` + `lag`, and a completion attempt finds them gone at once.
+- **Camunda's search is eventually consistent.** User task details, BPMN XML and even `GET /v2/global-task-listeners/{id}` lag about a second behind. The task manager reads the listener jobs instead, treats `409` on registration as "already registered", and only the reconciler reads the search.
+- **`@JobWorker(type = "${...}")` does not resolve placeholders.** The listener's job type is a constant, `taskmanager.projection`.
+- **Camunda Process Test purges the cluster before every test**, the global listener included, and starts the keys over. The task manager's integration test registers the listener again and empties the projection in `@BeforeEach`.
+- **Camunda keys exceed JavaScript's safe integers.** Every API of the recipe sends keys as strings.
+- **The Camunda client brings Apache HttpClient 5,** which a `RestClient` picks by default and which silently repeats a request that got `503`. All service clients here use the JDK HTTP client.
+- **springdoc reads Kotlin nullability through Jackson 2.** Without `com.fasterxml.jackson.module:jackson-module-kotlin` at runtime, the OpenAPI documents mark no field as required.
+- **Two systems, one action.** An application commits its database only if Camunda accepted the completion or the process start. If Camunda accepts but the answer is lost, Camunda went on without the domain change. Use an outbox if you cannot accept that.
+- **Demo only:** there is no authentication (`X-Demo-User`), the tokens between the services are static, and the stack keeps no data after `down -v`. Server-sent events only reach the clients of one task manager instance.
+- **Version exceptions.** Java 25 is the LTS (Dependabot offered 27). Flyway follows the Spring Boot BOM (12.4). Camunda minor and major upgrades and Elasticsearch majors are migrations, so Dependabot ignores them. The micro-frontend stays on TypeScript 6 until typescript-eslint supports 7. The Node version in `pom.xml` is not updated by Dependabot.
+
+## Variations
+
+| Instead of | You could | Better when |
+| --- | --- | --- |
+| Forms owned by the applications | Camunda Forms (`zeebe:formDefinition formId`, `bindingType="deployment"`) rendered by the tasklist with form-js, fetched with `GET /v2/user-tasks/{key}/form` | Forms are simple and domain checks fit into a `completing` listener that denies with a reason |
+| A global user task listener | A custom exporter that streams `USER_TASK` records | You run self-managed only and must not block task transitions; you then handle duplicates and lag yourself |
+| A global user task listener | Polling `POST /v2/user-tasks/search` | Few tasks and no need to see cancellations as events |
+| REST between the services | An event bus such as Kafka | The services must not depend on each other being up |
+| A static application registry | Self-registration of the applications at startup | Many applications that come and go; secure the registration |
+| Demo users | OIDC tokens; candidate groups from the token's claims | Always in production |
+
+The [history](docs/history) folder keeps the master's thesis this recipe started from and its original design with job-worker-based user tasks, an exporter and Kafka.
