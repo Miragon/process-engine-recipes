@@ -1,6 +1,6 @@
 import { expect, request, test } from '@playwright/test';
 import { PAYMENTS, claim, complete, json, placeOrder, taskState, tasklistAs, waitForTask } from '../api/stack';
-import { SCREENSHOT, openAs, row, taskDetail } from './desk';
+import { SCREENSHOT, filters, openAs, row, taskDetail } from './desk';
 
 test('finance claims Check payment and completes its JSON form after the application refused a wrong amount', async ({ page }) => {
   const alice = await tasklistAs('alice');
@@ -36,15 +36,14 @@ test('finance claims Check payment and completes its JSON form after the applica
   expect((await taskState(bob, checkPayment.userTaskKey)).state).toBe('OPEN');
 
   if (process.env.UPDATE_SCREENSHOT) {
-    // The picture shows the field with its error just above the docked action bar, without the toast of the claim.
+    // The picture shows the whole task from its title down to the field with its error, without the claim's toast,
+    // next to the payment tasks only (the order tasks carry the run-specific names of the other specs).
     await expect(page.getByRole('status').filter({ hasText: 'You claimed' })).toHaveCount(0);
-    await amount.evaluate((input) => {
-      const pane = input.closest('.detail');
-      const dock = pane?.querySelector('.actionbar-dock');
-      const field = input.parentElement;
-      if (!pane || !dock || !field) return;
-      pane.scrollBy(0, Math.max(0, field.getBoundingClientRect().bottom - dock.getBoundingClientRect().top + 8));
-    });
+    await filters(page).getByRole('button', { name: /^Payments/ }).click();
+    await expect(page).toHaveURL(/domain=payment/);
+    await expect(detail.getByText('The received amount must match the invoice amount', { exact: false }).first()).toBeVisible();
+    await page.setViewportSize({ width: 1440, height: 1080 });
+    await amount.evaluate((input) => input.closest('.detail')?.scrollTo(0, 0));
     await page.screenshot({ path: SCREENSHOT });
   }
 
