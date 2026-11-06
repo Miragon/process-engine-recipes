@@ -116,6 +116,31 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'npm'
+    directory: '/recipes/camunda8/external-tasklist/tasklist'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+      - 'recipe:camunda8-external-tasklist'
+    rebase-strategy: 'auto'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    cooldown:
+      default-days: 7
+    ignore:
+      # typescript-eslint has to support a TypeScript major first.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+    groups:
+      tasklist-ui-npm:
+        applies-to: version-updates
+        patterns: ['*']
+      tasklist-ui-npm-security:
+        applies-to: security-updates
+        patterns: ['*']
+
+  - package-ecosystem: 'npm'
     directory: '/recipes/camunda8/external-tasklist/e2e'
     schedule:
       interval: 'monthly'
