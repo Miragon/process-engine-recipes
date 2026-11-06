@@ -1,0 +1,4 @@
+tasklist:
+  provider:
+    token: test-token
+    frame-bundle: classpath:/frame.html

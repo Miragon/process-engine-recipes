@@ -1,61 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
-        <groupId>io.miragon.consulting</groupId>
-        <artifactId>processes</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <groupId>io.miragon.recipes</groupId>
+        <artifactId>camunda8-external-tasklist</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>order</artifactId>
+    <artifactId>order-app</artifactId>
+    <description>Order application of the MiraVelo bike shop: orders, the order process and its forms</description>
 
     <dependencies>
         <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-reflect</artifactId>
+            <groupId>io.camunda</groupId>
+            <artifactId>camunda-spring-boot-starter</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-kotlin</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.microutils</groupId>
-            <artifactId>kotlin-logging-jvm</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
+            <groupId>io.miragon.recipes</groupId>
+            <artifactId>tasklist-contract</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
         </dependency>
-
         <dependency>
-            <groupId>jakarta.validation</groupId>
-            <artifactId>jakarta.validation-api</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
-
         <dependency>
-            <groupId>io.camunda.spring</groupId>
-            <artifactId>spring-boot-starter-camunda</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-            <scope>compile</scope>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
@@ -63,105 +49,124 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
-
+        <!-- springdoc reads which Kotlin properties are required through Jackson 2's Kotlin module -->
         <dependency>
-            <groupId>io.miragon.consulting</groupId>
-            <artifactId>tasklistApi</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-kotlin</artifactId>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>io.miragon.consulting</groupId>
-            <artifactId>shared</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <groupId>tools.jackson.module</groupId>
+            <artifactId>jackson-module-kotlin</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.miragon.consulting</groupId>
-            <artifactId>taskmanager-client</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-test-junit5</artifactId>
-            <scope>test</scope>
+            <artifactId>kotlin-reflect</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.junit.vintage</groupId>
-                    <artifactId>junit-vintage-engine</artifactId>
-                </exclusion>
-            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.camunda</groupId>
+            <artifactId>camunda-process-test-spring</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
+        <finalName>order-app</finalName>
         <plugins>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
-                <configuration>
-                    <compilerPlugins>
-                        <plugin>jpa</plugin>
-                        <plugin>spring</plugin>
-                    </compilerPlugins>
-                    <args>
-                        <arg>-Xjsr305=strict</arg>
-                        <arg>-java-parameters</arg>
-                    </args>
-                    <jvmTarget>${kotlin.compiler.jvmTarget}</jvmTarget>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <!-- Builds the forms micro-frontend into target/classes/tasklist/forms/index.html, so it ships in the jar -->
             <plugin>
-                <groupId>org.jsonschema2pojo</groupId>
-                <artifactId>jsonschema2pojo-maven-plugin</artifactId>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
                 <configuration>
-                    <sourceDirectory>${project.basedir}/src/main/resources/forms</sourceDirectory>
-                    <targetPackage>io.miragon.zeebe.tm.order.generated</targetPackage>
-                    <targetVersion>11</targetVersion>
-                    <excludes>
-                        <exclude>*-schema.json</exclude>
-                        <exclude>*.html</exclude>
-                    </excludes>
-                    <generateBuilders>true</generateBuilders>
-                    <useJakartaValidation>true</useJakartaValidation>
-                    <useLongIntegers>true</useLongIntegers>
-                    <includeAdditionalProperties>false</includeAdditionalProperties>
+                    <workingDirectory>frontend</workingDirectory>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>com.github.victools</groupId>
-                <artifactId>jsonschema-maven-plugin</artifactId>
-                <configuration>
-                    <classNames>io/miragon/zeebe/tm/order/adapter/in/rest/model/**Schema*</classNames>
-                    <schemaFilePath>${project.basedir}/src/main/resources/forms/generated</schemaFilePath>
-                    <schemaFileName>{0}-schema.json</schemaFileName>
-                    <modules>
-                        <module>
-                            <name>JakartaValidation</name>
-                            <options>
-                                <option>NOT_NULLABLE_FIELD_IS_REQUIRED</option>
-                                <option>INCLUDE_PATTERN_EXPRESSIONS</option>
-                            </options>
-                        </module>
-                    </modules>
-                </configuration>
+                <executions>
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>npm-ci</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>ci --no-audit --no-fund</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-lint</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run lint</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-typecheck</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run typecheck</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-build</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+                    <!-- Bound to the test phase, so -DskipTests skips it like the Kotlin tests -->
+                    <execution>
+                        <id>npm-test</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>test</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
-
 </project>

@@ -21,7 +21,6 @@ jobs:
         if: >-
           (steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.update-type == 'version-update:semver-minor')
           && !contains(steps.meta.outputs.directory, '/apps/')
-          && !contains(steps.meta.outputs.directory, 'camunda8/external-tasklist/stack')
         run: |
           for i in 1 2 3 4 5; do
             gh pr merge --auto --squash "$PR_URL" && exit 0

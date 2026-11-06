@@ -1,155 +1,165 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1ksue5u" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.22.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.4.0">
-  <bpmn:process id="paymentProcess" name="Payment Process" isExecutable="true">
-    <bpmn:startEvent id="Event_15oppzv" name="Invoice created">
-      <bpmn:extensionElements>
-        <zeebe:ioMapping>
-          <zeebe:output source="=invoiceId" target="invoiceId" />
-        </zeebe:ioMapping>
-      </bpmn:extensionElements>
-      <bpmn:outgoing>Flow_1rrpel3</bpmn:outgoing>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="paymentDefinitions" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.10.0">
+  <bpmn:process id="payment-process" name="Payment" isExecutable="true">
+    <bpmn:startEvent id="paymentRequested" name="Payment requested">
+      <bpmn:outgoing>flowToCheckPayment</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="CheckPayment" name="Check payment">
+    <bpmn:sequenceFlow id="flowToCheckPayment" sourceRef="paymentRequested" targetRef="checkPayment" />
+    <bpmn:userTask id="checkPayment" name="Check payment">
       <bpmn:extensionElements>
-        <zeebe:ioMapping>
-          <zeebe:output source="=isAccepted" target="isAccepted" />
-        </zeebe:ioMapping>
+        <zeebe:userTask />
+        <zeebe:formDefinition externalReference="check-payment@1" />
+        <zeebe:assignmentDefinition candidateGroups="finance" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="domain" value="payment" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
-      <bpmn:incoming>Flow_1rrpel3</bpmn:incoming>
-      <bpmn:outgoing>Flow_0f66uwj</bpmn:outgoing>
+      <bpmn:incoming>flowToCheckPayment</bpmn:incoming>
+      <bpmn:outgoing>flowToReportPaymentResult</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:sequenceFlow id="Flow_1rrpel3" sourceRef="Event_15oppzv" targetRef="CheckPayment" />
-    <bpmn:endEvent id="Event_0wrdna2" name="Invoice checked">
-      <bpmn:incoming>Flow_0jxwzxp</bpmn:incoming>
+    <bpmn:sequenceFlow id="flowToReportPaymentResult" sourceRef="checkPayment" targetRef="reportPaymentResult" />
+    <bpmn:serviceTask id="reportPaymentResult" name="Report payment result">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="payment.report-result" retries="5" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>flowToReportPaymentResult</bpmn:incoming>
+      <bpmn:outgoing>flowToPaymentChecked</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="flowToPaymentChecked" sourceRef="reportPaymentResult" targetRef="paymentChecked" />
+    <bpmn:endEvent id="paymentChecked" name="Payment checked">
+      <bpmn:incoming>flowToPaymentChecked</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_0f66uwj" sourceRef="CheckPayment" targetRef="Activity_16c9fa6" />
-    <bpmn:boundaryEvent id="Event_1yhk5c3" name="every 3 days" cancelActivity="false" attachedToRef="CheckPayment">
-      <bpmn:outgoing>Flow_0uj3m51</bpmn:outgoing>
-      <bpmn:timerEventDefinition id="TimerEventDefinition_1836t8b">
-        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P3D</bpmn:timeDuration>
+    <bpmn:boundaryEvent id="reminderDue" name="Reminder due" cancelActivity="false" attachedToRef="checkPayment">
+      <bpmn:outgoing>flowToSendPaymentReminder</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="reminderDueTimer">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">=reminderAfter</bpmn:timeDuration>
       </bpmn:timerEventDefinition>
     </bpmn:boundaryEvent>
-    <bpmn:sendTask id="SendReminder" name="Send reminder">
+    <bpmn:sequenceFlow id="flowToSendPaymentReminder" sourceRef="reminderDue" targetRef="sendPaymentReminder" />
+    <bpmn:serviceTask id="sendPaymentReminder" name="Send payment reminder">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="send-reminder-request" />
+        <zeebe:taskDefinition type="payment.send-reminder" />
       </bpmn:extensionElements>
-      <bpmn:incoming>Flow_0uj3m51</bpmn:incoming>
-      <bpmn:outgoing>Flow_1iht8ux</bpmn:outgoing>
-    </bpmn:sendTask>
-    <bpmn:sequenceFlow id="Flow_0uj3m51" sourceRef="Event_1yhk5c3" targetRef="SendReminder" />
-    <bpmn:endEvent id="Event_0hff5mb" name="Reminder sent">
-      <bpmn:incoming>Flow_1iht8ux</bpmn:incoming>
+      <bpmn:incoming>flowToSendPaymentReminder</bpmn:incoming>
+      <bpmn:outgoing>flowToReminderSent</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="flowToReminderSent" sourceRef="sendPaymentReminder" targetRef="reminderSent" />
+    <bpmn:endEvent id="reminderSent" name="Reminder sent">
+      <bpmn:incoming>flowToReminderSent</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_1iht8ux" sourceRef="SendReminder" targetRef="Event_0hff5mb" />
-    <bpmn:sendTask id="Activity_16c9fa6" name="Inform about received payment">
-      <bpmn:extensionElements>
-        <zeebe:taskDefinition type="payment-received-request" />
-      </bpmn:extensionElements>
-      <bpmn:incoming>Flow_0f66uwj</bpmn:incoming>
-      <bpmn:outgoing>Flow_0jxwzxp</bpmn:outgoing>
-    </bpmn:sendTask>
-    <bpmn:sequenceFlow id="Flow_0jxwzxp" sourceRef="Activity_16c9fa6" targetRef="Event_0wrdna2" />
-    <bpmn:boundaryEvent id="Event_0v8bo4t" name="14 days" attachedToRef="CheckPayment">
-      <bpmn:outgoing>Flow_0xn0wm0</bpmn:outgoing>
-      <bpmn:timerEventDefinition id="TimerEventDefinition_1qcvrxk">
-        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT3M</bpmn:timeDuration>
+    <bpmn:boundaryEvent id="dueDatePassed" name="Due date passed" attachedToRef="checkPayment">
+      <bpmn:outgoing>flowToMarkPaymentOverdue</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="dueDatePassedTimer">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">=overdueAfter</bpmn:timeDuration>
       </bpmn:timerEventDefinition>
     </bpmn:boundaryEvent>
-    <bpmn:sequenceFlow id="Flow_0xn0wm0" sourceRef="Event_0v8bo4t" targetRef="Activity_08fz3qg" />
-    <bpmn:sendTask id="Activity_08fz3qg" name="Cancel order">
+    <bpmn:sequenceFlow id="flowToMarkPaymentOverdue" sourceRef="dueDatePassed" targetRef="markPaymentOverdue" />
+    <bpmn:serviceTask id="markPaymentOverdue" name="Mark payment overdue">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="cancel-order-request" />
+        <zeebe:taskDefinition type="payment.mark-overdue" />
       </bpmn:extensionElements>
-      <bpmn:incoming>Flow_0xn0wm0</bpmn:incoming>
-      <bpmn:outgoing>Flow_1d7lro4</bpmn:outgoing>
-    </bpmn:sendTask>
-    <bpmn:endEvent id="Event_1szk4ip" name="Invoice canceled">
-      <bpmn:incoming>Flow_1d7lro4</bpmn:incoming>
+      <bpmn:incoming>flowToMarkPaymentOverdue</bpmn:incoming>
+      <bpmn:outgoing>flowToReportOverdueResult</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="flowToReportOverdueResult" sourceRef="markPaymentOverdue" targetRef="reportOverdueResult" />
+    <bpmn:serviceTask id="reportOverdueResult" name="Report payment result">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="payment.report-result" retries="5" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>flowToReportOverdueResult</bpmn:incoming>
+      <bpmn:outgoing>flowToPaymentOverdue</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="flowToPaymentOverdue" sourceRef="reportOverdueResult" targetRef="paymentOverdue" />
+    <bpmn:endEvent id="paymentOverdue" name="Payment overdue">
+      <bpmn:incoming>flowToPaymentOverdue</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_1d7lro4" sourceRef="Activity_08fz3qg" targetRef="Event_1szk4ip" />
   </bpmn:process>
-  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="paymentProcess">
-      <bpmndi:BPMNShape id="Event_15oppzv_di" bpmnElement="Event_15oppzv">
-        <dc:Bounds x="162" y="122" width="36" height="36" />
+  <bpmndi:BPMNDiagram id="paymentDiagram">
+    <bpmndi:BPMNPlane id="paymentPlane" bpmnElement="payment-process">
+      <bpmndi:BPMNShape id="paymentRequested_di" bpmnElement="paymentRequested">
+        <dc:Bounds x="152" y="99" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="143" y="165" width="75" height="14" />
+          <dc:Bounds x="144" y="142" width="52" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0v364ul_di" bpmnElement="CheckPayment">
-        <dc:Bounds x="250" y="100" width="100" height="80" />
-        <bpmndi:BPMNLabel />
+      <bpmndi:BPMNShape id="checkPayment_di" bpmnElement="checkPayment">
+        <dc:Bounds x="240" y="77" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0wrdna2_di" bpmnElement="Event_0wrdna2">
-        <dc:Bounds x="592" y="122" width="36" height="36" />
+      <bpmndi:BPMNShape id="reportPaymentResult_di" bpmnElement="reportPaymentResult">
+        <dc:Bounds x="560" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="paymentChecked_di" bpmnElement="paymentChecked">
+        <dc:Bounds x="722" y="99" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="571" y="165" width="79" height="14" />
+          <dc:Bounds x="698" y="142" width="84" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_14e24fo_di" bpmnElement="SendReminder">
-        <dc:Bounds x="420" y="220" width="100" height="80" />
-        <bpmndi:BPMNLabel />
+      <bpmndi:BPMNShape id="sendPaymentReminder_di" bpmnElement="sendPaymentReminder">
+        <dc:Bounds x="400" y="187" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0hff5mb_di" bpmnElement="Event_0hff5mb">
-        <dc:Bounds x="592" y="242" width="36" height="36" />
+      <bpmndi:BPMNShape id="reminderSent_di" bpmnElement="reminderSent">
+        <dc:Bounds x="562" y="209" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="574" y="285" width="72" height="14" />
+          <dc:Bounds x="545" y="252" width="70" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_16c9fa6_di" bpmnElement="Activity_16c9fa6">
-        <dc:Bounds x="420" y="100" width="100" height="80" />
-        <bpmndi:BPMNLabel />
+      <bpmndi:BPMNShape id="markPaymentOverdue_di" bpmnElement="markPaymentOverdue">
+        <dc:Bounds x="400" y="307" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0lraukp_di" bpmnElement="Activity_08fz3qg">
-        <dc:Bounds x="420" y="340" width="100" height="80" />
+      <bpmndi:BPMNShape id="reportOverdueResult_di" bpmnElement="reportOverdueResult">
+        <dc:Bounds x="560" y="307" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_1szk4ip_di" bpmnElement="Event_1szk4ip">
-        <dc:Bounds x="592" y="362" width="36" height="36" />
+      <bpmndi:BPMNShape id="paymentOverdue_di" bpmnElement="paymentOverdue">
+        <dc:Bounds x="722" y="329" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="569" y="405" width="82" height="14" />
+          <dc:Bounds x="699" y="372" width="82" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_1hd6lll_di" bpmnElement="Event_0v8bo4t">
-        <dc:Bounds x="252" y="162" width="36" height="36" />
+      <bpmndi:BPMNShape id="dueDatePassed_di" bpmnElement="dueDatePassed">
+        <dc:Bounds x="252" y="139" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="220" y="205" width="39" height="14" />
+          <dc:Bounds x="185" y="182" width="80" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0u9lk1k_di" bpmnElement="Event_1yhk5c3">
-        <dc:Bounds x="312" y="162" width="36" height="36" />
+      <bpmndi:BPMNShape id="reminderDue_di" bpmnElement="reminderDue">
+        <dc:Bounds x="302" y="139" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="338" y="196" width="63" height="14" />
+          <dc:Bounds x="328" y="182" width="67" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Flow_1rrpel3_di" bpmnElement="Flow_1rrpel3">
-        <di:waypoint x="198" y="140" />
-        <di:waypoint x="250" y="140" />
+      <bpmndi:BPMNEdge id="flowToCheckPayment_di" bpmnElement="flowToCheckPayment">
+        <di:waypoint x="188" y="117" />
+        <di:waypoint x="240" y="117" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0f66uwj_di" bpmnElement="Flow_0f66uwj">
-        <di:waypoint x="350" y="140" />
-        <di:waypoint x="420" y="140" />
+      <bpmndi:BPMNEdge id="flowToReportPaymentResult_di" bpmnElement="flowToReportPaymentResult">
+        <di:waypoint x="340" y="117" />
+        <di:waypoint x="560" y="117" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0uj3m51_di" bpmnElement="Flow_0uj3m51">
-        <di:waypoint x="330" y="198" />
-        <di:waypoint x="330" y="260" />
-        <di:waypoint x="420" y="260" />
+      <bpmndi:BPMNEdge id="flowToPaymentChecked_di" bpmnElement="flowToPaymentChecked">
+        <di:waypoint x="660" y="117" />
+        <di:waypoint x="722" y="117" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1iht8ux_di" bpmnElement="Flow_1iht8ux">
-        <di:waypoint x="520" y="260" />
-        <di:waypoint x="592" y="260" />
+      <bpmndi:BPMNEdge id="flowToSendPaymentReminder_di" bpmnElement="flowToSendPaymentReminder">
+        <di:waypoint x="320" y="175" />
+        <di:waypoint x="320" y="227" />
+        <di:waypoint x="400" y="227" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0jxwzxp_di" bpmnElement="Flow_0jxwzxp">
-        <di:waypoint x="520" y="140" />
-        <di:waypoint x="592" y="140" />
+      <bpmndi:BPMNEdge id="flowToReminderSent_di" bpmnElement="flowToReminderSent">
+        <di:waypoint x="500" y="227" />
+        <di:waypoint x="562" y="227" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0xn0wm0_di" bpmnElement="Flow_0xn0wm0">
-        <di:waypoint x="270" y="198" />
-        <di:waypoint x="270" y="380" />
-        <di:waypoint x="420" y="380" />
+      <bpmndi:BPMNEdge id="flowToMarkPaymentOverdue_di" bpmnElement="flowToMarkPaymentOverdue">
+        <di:waypoint x="270" y="175" />
+        <di:waypoint x="270" y="347" />
+        <di:waypoint x="400" y="347" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1d7lro4_di" bpmnElement="Flow_1d7lro4">
-        <di:waypoint x="520" y="380" />
-        <di:waypoint x="592" y="380" />
+      <bpmndi:BPMNEdge id="flowToReportOverdueResult_di" bpmnElement="flowToReportOverdueResult">
+        <di:waypoint x="500" y="347" />
+        <di:waypoint x="560" y="347" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flowToPaymentOverdue_di" bpmnElement="flowToPaymentOverdue">
+        <di:waypoint x="660" y="347" />
+        <di:waypoint x="722" y="347" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

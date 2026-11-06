@@ -1,233 +1,287 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1ksue5u" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.22.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.4.0">
-  <bpmn:process id="orderProcess" name="Order Process" isExecutable="true">
-    <bpmn:startEvent id="StartEvent_1" name="Order received">
-      <bpmn:extensionElements>
-        <zeebe:ioMapping>
-          <zeebe:output source="=orderId" target="orderId" />
-        </zeebe:ioMapping>
-      </bpmn:extensionElements>
-      <bpmn:outgoing>Flow_0t8y9hy</bpmn:outgoing>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="order-definitions" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.10.0">
+  <bpmn:process id="order-process" name="Order" isExecutable="true">
+    <bpmn:startEvent id="orderPlaced" name="Order placed">
+      <bpmn:outgoing>toCheckOrder</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="CheckOrder" name="Check order">
+    <bpmn:sequenceFlow id="toCheckOrder" sourceRef="orderPlaced" targetRef="checkOrder" />
+    <bpmn:userTask id="checkOrder" name="Check order">
       <bpmn:extensionElements>
-        <zeebe:ioMapping>
-          <zeebe:output source="=isOrderValid" target="isOrderValid" />
-        </zeebe:ioMapping>
+        <zeebe:userTask />
+        <zeebe:formDefinition externalReference="check-order@1" />
+        <zeebe:assignmentDefinition candidateGroups="sales" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="domain" value="order" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
-      <bpmn:incoming>Flow_0t8y9hy</bpmn:incoming>
-      <bpmn:outgoing>Flow_13agsff</bpmn:outgoing>
+      <bpmn:incoming>toCheckOrder</bpmn:incoming>
+      <bpmn:outgoing>toOrderApproved</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:sequenceFlow id="Flow_0t8y9hy" sourceRef="StartEvent_1" targetRef="CheckOrder" />
-    <bpmn:endEvent id="Event_1t3yd4l" name="Order processed">
-      <bpmn:incoming>Flow_1y9k46h</bpmn:incoming>
-    </bpmn:endEvent>
-    <bpmn:userTask id="PrepareDelivery" name="Prepare delivery">
-      <bpmn:extensionElements />
-      <bpmn:incoming>Flow_14acku6</bpmn:incoming>
-      <bpmn:outgoing>Flow_1y9k46h</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:sequenceFlow id="Flow_13agsff" sourceRef="CheckOrder" targetRef="Gateway_1oqjd57" />
-    <bpmn:sequenceFlow id="Flow_1y9k46h" sourceRef="PrepareDelivery" targetRef="Event_1t3yd4l" />
-    <bpmn:exclusiveGateway id="Gateway_1oqjd57" name="Order ok?" default="Flow_0wi71fc">
-      <bpmn:incoming>Flow_13agsff</bpmn:incoming>
-      <bpmn:outgoing>Flow_0wi71fc</bpmn:outgoing>
-      <bpmn:outgoing>Flow_0dm4lct</bpmn:outgoing>
-    </bpmn:exclusiveGateway>
-    <bpmn:sequenceFlow id="Flow_0wi71fc" name="Yes" sourceRef="Gateway_1oqjd57" targetRef="RequestPayment" />
-    <bpmn:endEvent id="Event_0hxie89" name="Order canceled">
-      <bpmn:incoming>Flow_1621hv0</bpmn:incoming>
-    </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_0dm4lct" name="No" sourceRef="Gateway_1oqjd57" targetRef="SendCancellation">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=isOrderValid = false</bpmn:conditionExpression>
-    </bpmn:sequenceFlow>
-    <bpmn:sendTask id="RequestPayment" name="Request payment">
+    <bpmn:boundaryEvent id="orderCanceled" name="Order canceled" attachedToRef="checkOrder">
+      <bpmn:outgoing>toMarkOrderCanceled</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="orderCanceledDefinition" messageRef="orderCanceledMessage" />
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="toMarkOrderCanceled" sourceRef="orderCanceled" targetRef="markOrderCanceled" />
+    <bpmn:serviceTask id="markOrderCanceled" name="Mark order canceled">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="receive-payment-request" />
+        <zeebe:taskDefinition type="order.mark-canceled" />
       </bpmn:extensionElements>
-      <bpmn:incoming>Flow_0wi71fc</bpmn:incoming>
-      <bpmn:outgoing>Flow_0hkw20k</bpmn:outgoing>
-    </bpmn:sendTask>
-    <bpmn:sequenceFlow id="Flow_0hkw20k" sourceRef="RequestPayment" targetRef="PaymentReceivedEvent" />
-    <bpmn:sendTask id="SendCancellation" name="Send cancellation email to customer">
-      <bpmn:extensionElements>
-        <zeebe:taskDefinition type="decline-order-request" />
-      </bpmn:extensionElements>
-      <bpmn:incoming>Flow_0dm4lct</bpmn:incoming>
-      <bpmn:outgoing>Flow_0wxvd28</bpmn:outgoing>
-    </bpmn:sendTask>
-    <bpmn:sequenceFlow id="Flow_0wxvd28" sourceRef="SendCancellation" targetRef="Activity_1gpqwhc" />
-    <bpmn:sequenceFlow id="Flow_14acku6" sourceRef="PaymentReceivedEvent" targetRef="PrepareDelivery" />
-    <bpmn:intermediateCatchEvent id="PaymentReceivedEvent" name="Payment received">
-      <bpmn:extensionElements>
-        <zeebe:ioMapping>
-          <zeebe:output source="=invoiceId" target="invoiceId" />
-        </zeebe:ioMapping>
-      </bpmn:extensionElements>
-      <bpmn:incoming>Flow_0hkw20k</bpmn:incoming>
-      <bpmn:outgoing>Flow_14acku6</bpmn:outgoing>
-      <bpmn:messageEventDefinition id="MessageEventDefinition_1byhbby" messageRef="Message_20j8qkd" />
-    </bpmn:intermediateCatchEvent>
-    <bpmn:subProcess id="Activity_1mfg3yg" triggeredByEvent="true">
-      <bpmn:extensionElements />
-      <bpmn:startEvent id="Event_0pbsgu2" name="Cancellation received">
-        <bpmn:extensionElements />
-        <bpmn:outgoing>Flow_0k7r135</bpmn:outgoing>
-        <bpmn:messageEventDefinition id="MessageEventDefinition_0iy9fob" messageRef="Message_1dk0dl4" />
-      </bpmn:startEvent>
-      <bpmn:sequenceFlow id="Flow_0k7r135" sourceRef="Event_0pbsgu2" targetRef="Activity_06515pm" />
-      <bpmn:endEvent id="Event_113fxix" name="Order cancelled">
-        <bpmn:incoming>Flow_0uk0pdc</bpmn:incoming>
-      </bpmn:endEvent>
-      <bpmn:sequenceFlow id="Flow_0uk0pdc" sourceRef="Activity_06515pm" targetRef="Event_113fxix" />
-      <bpmn:serviceTask id="Activity_06515pm" name="Cancel order">
-        <bpmn:extensionElements>
-          <zeebe:taskDefinition type="cancel-order" />
-        </bpmn:extensionElements>
-        <bpmn:incoming>Flow_0k7r135</bpmn:incoming>
-        <bpmn:outgoing>Flow_0uk0pdc</bpmn:outgoing>
-      </bpmn:serviceTask>
-    </bpmn:subProcess>
-    <bpmn:sequenceFlow id="Flow_1621hv0" sourceRef="Activity_1gpqwhc" targetRef="Event_0hxie89" />
-    <bpmn:serviceTask id="Activity_1gpqwhc" name="Cancel order">
-      <bpmn:extensionElements>
-        <zeebe:taskDefinition type="cancel-order" />
-      </bpmn:extensionElements>
-      <bpmn:incoming>Flow_0wxvd28</bpmn:incoming>
-      <bpmn:outgoing>Flow_1621hv0</bpmn:outgoing>
+      <bpmn:incoming>toMarkOrderCanceled</bpmn:incoming>
+      <bpmn:outgoing>toOrderCanceledEnd</bpmn:outgoing>
     </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="toOrderCanceledEnd" sourceRef="markOrderCanceled" targetRef="orderCanceledEnd" />
+    <bpmn:endEvent id="orderCanceledEnd" name="Order canceled">
+      <bpmn:incoming>toOrderCanceledEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="toOrderApproved" sourceRef="checkOrder" targetRef="orderApproved" />
+    <bpmn:exclusiveGateway id="orderApproved" name="Order approved?">
+      <bpmn:incoming>toOrderApproved</bpmn:incoming>
+      <bpmn:outgoing>approvedYes</bpmn:outgoing>
+      <bpmn:outgoing>approvedNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="approvedNo" name="No" sourceRef="orderApproved" targetRef="declineOrder">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approved = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="declineOrder" name="Decline order">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="order.decline" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>approvedNo</bpmn:incoming>
+      <bpmn:outgoing>toOrderDeclined</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="toOrderDeclined" sourceRef="declineOrder" targetRef="orderDeclined" />
+    <bpmn:endEvent id="orderDeclined" name="Order declined">
+      <bpmn:incoming>toOrderDeclined</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="approvedYes" name="Yes" sourceRef="orderApproved" targetRef="requestPayment">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approved = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="requestPayment" name="Request payment">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="order.request-payment" retries="5" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>approvedYes</bpmn:incoming>
+      <bpmn:outgoing>toPaymentOutcome</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="toPaymentOutcome" sourceRef="requestPayment" targetRef="paymentOutcome" />
+    <bpmn:eventBasedGateway id="paymentOutcome">
+      <bpmn:incoming>toPaymentOutcome</bpmn:incoming>
+      <bpmn:outgoing>toPaymentReceived</bpmn:outgoing>
+      <bpmn:outgoing>toPaymentRejected</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:sequenceFlow id="toPaymentReceived" sourceRef="paymentOutcome" targetRef="paymentReceived" />
+    <bpmn:intermediateCatchEvent id="paymentReceived" name="Payment received">
+      <bpmn:incoming>toPaymentReceived</bpmn:incoming>
+      <bpmn:outgoing>toPrepareDelivery</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="paymentReceivedDefinition" messageRef="paymentReceivedMessage" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="toPrepareDelivery" sourceRef="paymentReceived" targetRef="prepareDelivery" />
+    <bpmn:userTask id="prepareDelivery" name="Prepare delivery">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition externalReference="prepare-delivery@1" />
+        <zeebe:assignmentDefinition candidateGroups="warehouse" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="domain" value="order" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>toPrepareDelivery</bpmn:incoming>
+      <bpmn:outgoing>toShipOrder</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="toShipOrder" sourceRef="prepareDelivery" targetRef="shipOrder" />
+    <bpmn:serviceTask id="shipOrder" name="Ship order">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="order.ship" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>toShipOrder</bpmn:incoming>
+      <bpmn:outgoing>toOrderShipped</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="toOrderShipped" sourceRef="shipOrder" targetRef="orderShipped" />
+    <bpmn:endEvent id="orderShipped" name="Order shipped">
+      <bpmn:incoming>toOrderShipped</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="toPaymentRejected" sourceRef="paymentOutcome" targetRef="paymentRejected" />
+    <bpmn:intermediateCatchEvent id="paymentRejected" name="Payment rejected">
+      <bpmn:incoming>toPaymentRejected</bpmn:incoming>
+      <bpmn:outgoing>toCancelUnpaidOrder</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="paymentRejectedDefinition" messageRef="paymentRejectedMessage" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="toCancelUnpaidOrder" sourceRef="paymentRejected" targetRef="cancelUnpaidOrder" />
+    <bpmn:serviceTask id="cancelUnpaidOrder" name="Cancel unpaid order">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="order.cancel-unpaid" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>toCancelUnpaidOrder</bpmn:incoming>
+      <bpmn:outgoing>toOrderNotPaid</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="toOrderNotPaid" sourceRef="cancelUnpaidOrder" targetRef="orderNotPaid" />
+    <bpmn:endEvent id="orderNotPaid" name="Order not paid">
+      <bpmn:incoming>toOrderNotPaid</bpmn:incoming>
+    </bpmn:endEvent>
   </bpmn:process>
-  <bpmn:message id="Message_20j8qkd" name="PaymentReceivedEvent">
+  <bpmn:message id="orderCanceledMessage" name="OrderCanceled">
     <bpmn:extensionElements>
       <zeebe:subscription correlationKey="=orderId" />
     </bpmn:extensionElements>
   </bpmn:message>
-  <bpmn:message id="Message_1dk0dl4" name="CancelOrderEvent">
+  <bpmn:message id="paymentReceivedMessage" name="PaymentReceived">
     <bpmn:extensionElements>
       <zeebe:subscription correlationKey="=orderId" />
     </bpmn:extensionElements>
   </bpmn:message>
-  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="orderProcess">
-      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
-        <dc:Bounds x="179" y="159" width="36" height="36" />
+  <bpmn:message id="paymentRejectedMessage" name="PaymentRejected">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=orderId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmndi:BPMNDiagram id="orderDiagram">
+    <bpmndi:BPMNPlane id="orderPlane" bpmnElement="order-process">
+      <bpmndi:BPMNShape id="orderPlaced_di" bpmnElement="orderPlaced">
+        <dc:Bounds x="172" y="182" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="161" y="202" width="73" height="14" />
+          <dc:Bounds x="158" y="225" width="64" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_088o44v_di" bpmnElement="CheckOrder">
-        <dc:Bounds x="270" y="137" width="100" height="80" />
-        <bpmndi:BPMNLabel />
+      <bpmndi:BPMNShape id="checkOrder_di" bpmnElement="checkOrder">
+        <dc:Bounds x="260" y="160" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_1t3yd4l_di" bpmnElement="Event_1t3yd4l">
-        <dc:Bounds x="1002" y="159" width="36" height="36" />
+      <bpmndi:BPMNShape id="markOrderCanceled_di" bpmnElement="markOrderCanceled">
+        <dc:Bounds x="380" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="orderCanceledEnd_di" bpmnElement="orderCanceledEnd">
+        <dc:Bounds x="532" y="312" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="979" y="202" width="82" height="14" />
+          <dc:Bounds x="513" y="355" width="74" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_16791gq_di" bpmnElement="PrepareDelivery">
-        <dc:Bounds x="830" y="137" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_1oqjd57_di" bpmnElement="Gateway_1oqjd57" isMarkerVisible="true">
-        <dc:Bounds x="435" y="152" width="50" height="50" />
+      <bpmndi:BPMNShape id="orderApproved_di" bpmnElement="orderApproved" isMarkerVisible="true">
+        <dc:Bounds x="415" y="175" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="435" y="128" width="49" height="14" />
+          <dc:Bounds x="399" y="232" width="82" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0hxie89_di" bpmnElement="Event_0hxie89">
-        <dc:Bounds x="1002" y="272" width="36" height="36" />
+      <bpmndi:BPMNShape id="declineOrder_di" bpmnElement="declineOrder">
+        <dc:Bounds x="520" y="40" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="orderDeclined_di" bpmnElement="orderDeclined">
+        <dc:Bounds x="682" y="62" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="982" y="315" width="76" height="14" />
+          <dc:Bounds x="663" y="105" width="74" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_04bhgde_di" bpmnElement="RequestPayment">
-        <dc:Bounds x="560" y="137" width="100" height="80" />
-        <bpmndi:BPMNLabel />
+      <bpmndi:BPMNShape id="requestPayment_di" bpmnElement="requestPayment">
+        <dc:Bounds x="520" y="160" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_09vtvd0_di" bpmnElement="SendCancellation">
-        <dc:Bounds x="560" y="250" width="100" height="80" />
-        <bpmndi:BPMNLabel />
+      <bpmndi:BPMNShape id="paymentOutcome_di" bpmnElement="paymentOutcome">
+        <dc:Bounds x="675" y="175" width="50" height="50" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_08ah165_di" bpmnElement="PaymentReceivedEvent">
-        <dc:Bounds x="732" y="159" width="36" height="36" />
+      <bpmndi:BPMNShape id="paymentReceived_di" bpmnElement="paymentReceived">
+        <dc:Bounds x="782" y="182" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="706" y="202" width="89" height="14" />
+          <dc:Bounds x="757" y="225" width="86" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0qtuau6_di" bpmnElement="Activity_1mfg3yg" isExpanded="true">
-        <dc:Bounds x="410" y="400" width="380" height="200" />
+      <bpmndi:BPMNShape id="prepareDelivery_di" bpmnElement="prepareDelivery">
+        <dc:Bounds x="880" y="160" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_1ovkci0_di" bpmnElement="Event_0pbsgu2">
-        <dc:Bounds x="450" y="482" width="36" height="36" />
+      <bpmndi:BPMNShape id="shipOrder_di" bpmnElement="shipOrder">
+        <dc:Bounds x="1040" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="orderShipped_di" bpmnElement="orderShipped">
+        <dc:Bounds x="1202" y="182" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="438" y="525" width="61" height="27" />
+          <dc:Bounds x="1185" y="225" width="70" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_113fxix_di" bpmnElement="Event_113fxix">
-        <dc:Bounds x="702" y="482" width="36" height="36" />
+      <bpmndi:BPMNShape id="paymentRejected_di" bpmnElement="paymentRejected">
+        <dc:Bounds x="782" y="312" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="681" y="525" width="78" height="14" />
+          <dc:Bounds x="757" y="355" width="86" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_09f2ctk_di" bpmnElement="Activity_06515pm">
-        <dc:Bounds x="540" y="460" width="100" height="80" />
-        <bpmndi:BPMNLabel />
+      <bpmndi:BPMNShape id="cancelUnpaidOrder_di" bpmnElement="cancelUnpaidOrder">
+        <dc:Bounds x="880" y="290" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Flow_0k7r135_di" bpmnElement="Flow_0k7r135">
-        <di:waypoint x="486" y="500" />
-        <di:waypoint x="540" y="500" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0uk0pdc_di" bpmnElement="Flow_0uk0pdc">
-        <di:waypoint x="640" y="500" />
-        <di:waypoint x="702" y="500" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="Activity_1v3jl8i_di" bpmnElement="Activity_1gpqwhc">
-        <dc:Bounds x="740" y="250" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Flow_0t8y9hy_di" bpmnElement="Flow_0t8y9hy">
-        <di:waypoint x="215" y="177" />
-        <di:waypoint x="270" y="177" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_13agsff_di" bpmnElement="Flow_13agsff">
-        <di:waypoint x="370" y="177" />
-        <di:waypoint x="435" y="177" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1y9k46h_di" bpmnElement="Flow_1y9k46h">
-        <di:waypoint x="930" y="177" />
-        <di:waypoint x="1002" y="177" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0wi71fc_di" bpmnElement="Flow_0wi71fc">
-        <di:waypoint x="485" y="177" />
-        <di:waypoint x="560" y="177" />
+      <bpmndi:BPMNShape id="orderNotPaid_di" bpmnElement="orderNotPaid">
+        <dc:Bounds x="1042" y="312" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="497" y="159" width="18" height="14" />
+          <dc:Bounds x="1024" y="355" width="72" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="orderCanceled_di" bpmnElement="orderCanceled">
+        <dc:Bounds x="292" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="222" y="265" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="toCheckOrder_di" bpmnElement="toCheckOrder">
+        <di:waypoint x="208" y="200" />
+        <di:waypoint x="260" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="toMarkOrderCanceled_di" bpmnElement="toMarkOrderCanceled">
+        <di:waypoint x="310" y="258" />
+        <di:waypoint x="310" y="330" />
+        <di:waypoint x="380" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="toOrderCanceledEnd_di" bpmnElement="toOrderCanceledEnd">
+        <di:waypoint x="480" y="330" />
+        <di:waypoint x="532" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="toOrderApproved_di" bpmnElement="toOrderApproved">
+        <di:waypoint x="360" y="200" />
+        <di:waypoint x="415" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="approvedNo_di" bpmnElement="approvedNo">
+        <di:waypoint x="440" y="175" />
+        <di:waypoint x="440" y="80" />
+        <di:waypoint x="520" y="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="448" y="123" width="15" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0dm4lct_di" bpmnElement="Flow_0dm4lct">
-        <di:waypoint x="460" y="202" />
-        <di:waypoint x="460" y="290" />
-        <di:waypoint x="560" y="290" />
+      <bpmndi:BPMNEdge id="toOrderDeclined_di" bpmnElement="toOrderDeclined">
+        <di:waypoint x="620" y="80" />
+        <di:waypoint x="682" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="approvedYes_di" bpmnElement="approvedYes">
+        <di:waypoint x="465" y="200" />
+        <di:waypoint x="520" y="200" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="468" y="243" width="15" height="14" />
+          <dc:Bounds x="483" y="182" width="19" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0hkw20k_di" bpmnElement="Flow_0hkw20k">
-        <di:waypoint x="660" y="177" />
-        <di:waypoint x="732" y="177" />
+      <bpmndi:BPMNEdge id="toPaymentOutcome_di" bpmnElement="toPaymentOutcome">
+        <di:waypoint x="620" y="200" />
+        <di:waypoint x="675" y="200" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0wxvd28_di" bpmnElement="Flow_0wxvd28">
-        <di:waypoint x="660" y="290" />
-        <di:waypoint x="740" y="290" />
+      <bpmndi:BPMNEdge id="toPaymentReceived_di" bpmnElement="toPaymentReceived">
+        <di:waypoint x="725" y="200" />
+        <di:waypoint x="782" y="200" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_14acku6_di" bpmnElement="Flow_14acku6">
-        <di:waypoint x="768" y="177" />
-        <di:waypoint x="830" y="177" />
+      <bpmndi:BPMNEdge id="toPrepareDelivery_di" bpmnElement="toPrepareDelivery">
+        <di:waypoint x="818" y="200" />
+        <di:waypoint x="880" y="200" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1621hv0_di" bpmnElement="Flow_1621hv0">
-        <di:waypoint x="840" y="290" />
-        <di:waypoint x="1002" y="290" />
+      <bpmndi:BPMNEdge id="toShipOrder_di" bpmnElement="toShipOrder">
+        <di:waypoint x="980" y="200" />
+        <di:waypoint x="1040" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="toOrderShipped_di" bpmnElement="toOrderShipped">
+        <di:waypoint x="1140" y="200" />
+        <di:waypoint x="1202" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="toPaymentRejected_di" bpmnElement="toPaymentRejected">
+        <di:waypoint x="700" y="225" />
+        <di:waypoint x="700" y="330" />
+        <di:waypoint x="782" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="toCancelUnpaidOrder_di" bpmnElement="toCancelUnpaidOrder">
+        <di:waypoint x="818" y="330" />
+        <di:waypoint x="880" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="toOrderNotPaid_di" bpmnElement="toOrderNotPaid">
+        <di:waypoint x="980" y="330" />
+        <di:waypoint x="1042" y="330" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

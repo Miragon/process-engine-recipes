@@ -1,0 +1,66 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "paymentId": { "type": "string", "title": "Payment", "readOnly": true },
+      "orderId": { "type": "string", "title": "Order", "readOnly": true },
+      "customerName": { "type": "string", "title": "Customer", "readOnly": true },
+      "customerEmail": { "type": "string", "title": "Email", "readOnly": true },
+      "invoiceAmount": { "type": "string", "title": "Invoice amount", "readOnly": true },
+      "paymentReceived": { "type": "boolean", "title": "Payment received" },
+      "amountReceived": { "type": "number", "title": "Amount received", "minimum": 0 },
+      "rejectionReason": { "type": "string", "title": "Reason for the rejection", "maxLength": 500 }
+    },
+    "required": ["paymentReceived"]
+  },
+  "uiSchema": {
+    "type": "VerticalLayout",
+    "elements": [
+      {
+        "type": "Group",
+        "label": "Invoice",
+        "elements": [
+          {
+            "type": "HorizontalLayout",
+            "elements": [
+              { "type": "Control", "scope": "#/properties/paymentId" },
+              { "type": "Control", "scope": "#/properties/orderId" }
+            ]
+          },
+          {
+            "type": "HorizontalLayout",
+            "elements": [
+              { "type": "Control", "scope": "#/properties/customerName" },
+              { "type": "Control", "scope": "#/properties/customerEmail" }
+            ]
+          },
+          { "type": "Control", "scope": "#/properties/invoiceAmount" }
+        ]
+      },
+      {
+        "type": "Group",
+        "label": "Check",
+        "elements": [
+          { "type": "Control", "scope": "#/properties/paymentReceived" },
+          {
+            "type": "Control",
+            "scope": "#/properties/amountReceived",
+            "rule": {
+              "effect": "SHOW",
+              "condition": { "scope": "#/properties/paymentReceived", "schema": { "const": true } }
+            }
+          },
+          {
+            "type": "Control",
+            "scope": "#/properties/rejectionReason",
+            "options": { "multi": true },
+            "rule": {
+              "effect": "SHOW",
+              "condition": { "scope": "#/properties/paymentReceived", "schema": { "const": false } }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
