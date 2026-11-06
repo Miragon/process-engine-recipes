@@ -79,6 +79,10 @@
       },
       "FormView" : {
         "discriminator" : {
+          "mapping" : {
+            "html" : "#/components/schemas/HtmlFormView",
+            "json-forms" : "#/components/schemas/JsonFormsView"
+          },
           "propertyName" : "type"
         },
         "properties" : {
@@ -733,8 +737,8 @@
           "name" : "userTaskKey",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "pattern" : "^[0-9]+$",
+            "type" : "string"
           }
         }, {
           "description" : "One of the demo users (GET /api/users), for example alice",
@@ -766,8 +770,8 @@
           "name" : "userTaskKey",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "pattern" : "^[0-9]+$",
+            "type" : "string"
           }
         }, {
           "description" : "One of the demo users (GET /api/users), for example alice",
@@ -811,8 +815,8 @@
           "name" : "userTaskKey",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "pattern" : "^[0-9]+$",
+            "type" : "string"
           }
         }, {
           "description" : "One of the demo users (GET /api/users), for example alice",
@@ -844,8 +848,8 @@
           "name" : "userTaskKey",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "pattern" : "^[0-9]+$",
+            "type" : "string"
           }
         }, {
           "description" : "One of the demo users (GET /api/users), for example alice",
@@ -879,8 +883,8 @@
           "name" : "userTaskKey",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "pattern" : "^[0-9]+$",
+            "type" : "string"
           }
         }, {
           "description" : "One of the demo users (GET /api/users), for example alice",
@@ -917,8 +921,8 @@
           "name" : "userTaskKey",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "pattern" : "^[0-9]+$",
+            "type" : "string"
           }
         }, {
           "description" : "One of the demo users (GET /api/users), for example alice",
@@ -955,8 +959,8 @@
           "name" : "userTaskKey",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "pattern" : "^[0-9]+$",
+            "type" : "string"
           }
         }, {
           "description" : "One of the demo users (GET /api/users), for example alice",
@@ -994,8 +998,8 @@
           "name" : "userTaskKey",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "pattern" : "^[0-9]+$",
+            "type" : "string"
           }
         } ],
         "responses" : {
