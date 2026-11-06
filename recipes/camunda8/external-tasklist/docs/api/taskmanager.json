@@ -10,6 +10,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "domain", "label" ],
         "type" : "object"
       },
       "DemoUserView" : {
@@ -27,6 +28,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "groups", "id", "name" ],
         "type" : "object"
       },
       "Facet" : {
@@ -42,6 +44,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "count", "label", "value" ],
         "type" : "object"
       },
       "Facets" : {
@@ -71,6 +74,7 @@
             "type" : "array"
           }
         },
+        "required" : [ "candidateGroups", "domains", "processes", "states" ],
         "type" : "object"
       },
       "FormView" : {
@@ -95,7 +99,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "type" ],
+        "required" : [ "data", "draftable", "formRef", "readOnly", "type" ],
         "type" : "object"
       },
       "HistoryEntry" : {
@@ -123,12 +127,14 @@
             "type" : "string"
           }
         },
+        "required" : [ "changedAttributes", "eventType", "occurredAt", "source" ],
         "type" : "object"
       },
       "HtmlFormView" : {
         "allOf" : [ {
           "$ref" : "#/components/schemas/FormView"
-        } ]
+        } ],
+        "required" : [ "data", "draftable", "formRef", "readOnly" ]
       },
       "JsonFormsView" : {
         "allOf" : [ {
@@ -145,7 +151,8 @@
             }
           },
           "type" : "object"
-        } ]
+        } ],
+        "required" : [ "data", "draftable", "formRef", "readOnly", "schema" ]
       },
       "SseEmitter" : {
         "properties" : {
@@ -177,6 +184,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "domain", "domainLabel", "formRef", "id", "label" ],
         "type" : "object"
       },
       "StartResult" : {
@@ -188,6 +196,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "processInstanceKey" ],
         "type" : "object"
       },
       "SubmissionBody" : {
@@ -197,6 +206,7 @@
             "type" : "object"
           }
         },
+        "required" : [ "data" ],
         "type" : "object"
       },
       "TaskDto" : {
@@ -293,6 +303,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "actions", "candidateGroups", "candidateUsers", "createdAt", "domain", "domainLabel", "elementId", "name", "priority", "processDefinitionId", "processDefinitionVersion", "processInstanceKey", "state", "updatedAt", "userTaskKey" ],
         "type" : "object"
       },
       "TaskPage" : {
@@ -316,6 +327,7 @@
             "type" : "integer"
           }
         },
+        "required" : [ "from", "items", "limit", "total" ],
         "type" : "object"
       },
       "TaskUpdate" : {
@@ -349,6 +361,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "groups", "id" ],
         "type" : "object"
       }
     }
