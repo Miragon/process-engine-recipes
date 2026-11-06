@@ -300,19 +300,27 @@ export interface components {
             occurredAt: string;
             source: string;
         };
-        HtmlFormView: {
-            type: "HtmlFormView";
-        } & Omit<WithRequired<components["schemas"]["FormView"], "data" | "draftable" | "formRef" | "readOnly">, "type">;
-        JsonFormsView: {
-            type: "JsonFormsView";
-        } & (Omit<WithRequired<components["schemas"]["FormView"], "data" | "draftable" | "formRef" | "readOnly">, "type"> & {
+        HtmlFormView: Omit<WithRequired<components["schemas"]["FormView"], "data" | "draftable" | "formRef" | "readOnly">, "type"> & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "html";
+        };
+        JsonFormsView: Omit<WithRequired<components["schemas"]["FormView"], "data" | "draftable" | "formRef" | "readOnly">, "type"> & {
             schema: {
                 [key: string]: unknown;
             };
             uiSchema?: {
                 [key: string]: unknown;
             } | null;
-        });
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "json-forms";
+        };
         SseEmitter: {
             /** Format: int64 */
             timeout?: number;
@@ -621,7 +629,7 @@ export interface operations {
                 "X-Demo-User"?: string;
             };
             path: {
-                userTaskKey: number;
+                userTaskKey: string;
             };
             cookie?: never;
         };
@@ -646,7 +654,7 @@ export interface operations {
                 "X-Demo-User": string;
             };
             path: {
-                userTaskKey: number;
+                userTaskKey: string;
             };
             cookie?: never;
         };
@@ -675,7 +683,7 @@ export interface operations {
                 "X-Demo-User": string;
             };
             path: {
-                userTaskKey: number;
+                userTaskKey: string;
             };
             cookie?: never;
         };
@@ -700,7 +708,7 @@ export interface operations {
                 "X-Demo-User": string;
             };
             path: {
-                userTaskKey: number;
+                userTaskKey: string;
             };
             cookie?: never;
         };
@@ -725,7 +733,7 @@ export interface operations {
                 "X-Demo-User": string;
             };
             path: {
-                userTaskKey: number;
+                userTaskKey: string;
             };
             cookie?: never;
         };
@@ -752,7 +760,7 @@ export interface operations {
                 "X-Demo-User": string;
             };
             path: {
-                userTaskKey: number;
+                userTaskKey: string;
             };
             cookie?: never;
         };
@@ -779,7 +787,7 @@ export interface operations {
                 "X-Demo-User": string;
             };
             path: {
-                userTaskKey: number;
+                userTaskKey: string;
             };
             cookie?: never;
         };
@@ -801,7 +809,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                userTaskKey: number;
+                userTaskKey: string;
             };
             cookie?: never;
         };

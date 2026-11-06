@@ -19,16 +19,13 @@ export type StartResult = Schemas['StartResult'];
 export type FormData = Record<string, unknown>;
 export type { FieldError };
 
-/** Query of `GET /api/tasks`. The user travels as `X-Demo-User`, not as the query parameter the document shows. */
-export type TaskQuery = Omit<NonNullable<operations['list']['parameters']['query']>, 'user'>;
+/** Query of `GET /api/tasks`; the user travels as `X-Demo-User`. */
+export type TaskQuery = NonNullable<operations['list']['parameters']['query']>;
 export type StateQuery = NonNullable<TaskQuery['state']>;
 
-/**
- * The API document names no values for the discriminator of `FormView`, so the generated types guess them from the
- * schema names. On the wire `type` is `json-forms` or `html`, as in the contract's `FormView`.
- */
-export type JsonFormsView = Omit<Schemas['JsonFormsView'], 'type'> & { type: 'json-forms' };
-export type HtmlFormView = Omit<Schemas['HtmlFormView'], 'type'> & { type: 'html' };
+/** A form as `GET /api/tasks/{key}/form` answers it: `type` is `json-forms` or `html`, as in the contract's `FormView`. */
+export type JsonFormsView = Schemas['JsonFormsView'];
+export type HtmlFormView = Schemas['HtmlFormView'];
 export type FormView = JsonFormsView | HtmlFormView;
 
 /** Data of the server-sent event `task-changed` of `GET /api/events`, which the API document does not describe. */
