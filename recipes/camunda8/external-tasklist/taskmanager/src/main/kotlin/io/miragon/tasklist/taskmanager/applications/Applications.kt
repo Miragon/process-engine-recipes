@@ -50,7 +50,8 @@ class Applications(
 
     fun label(domain: String): String = properties.applications[domain]?.label ?: domain
 
-    fun all(): List<ProviderClient> = clients.values.toList()
+    /** Sorted by label: the configuration has no reliable order once environment variables bind it. */
+    fun all(): List<ProviderClient> = clients.values.sortedBy { it.label }
 }
 
 /** Calls the provider API (`/tasklist/v1`) of one application and passes its problems on unchanged. */

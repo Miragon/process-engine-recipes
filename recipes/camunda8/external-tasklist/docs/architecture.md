@@ -134,7 +134,7 @@ The tasklist calls only this API. The signed-in user is the header `X-Demo-User`
 | `GET /api/start-forms/{domain}/{id}/form` | One start form |
 | `POST /api/start-forms/{domain}/{id}/submission` | `{data}` → `201 {processInstanceKey, businessId}` |
 | `GET /api/forms/{domain}/{formRef}/frame` | The application's micro-frontend for the iframe |
-| `GET /api/applications`, `GET /api/users`, `GET /api/me` | Registry and demo users |
+| `GET /api/applications`, `GET /api/users`, `GET /api/me` | Registry, sorted by label, and demo users |
 | `GET /api/events` | Server-sent events `task-changed {userTaskKey, state, domain}` after every projection change |
 
 Tasks are JSON objects with `userTaskKey`, `name`, `processName`, `processDefinitionId`, `processDefinitionVersion`, `elementId`, `domain`, `domainLabel`, `businessId`, `subject`, `formRef`, `state` (`OPEN`, `COMPLETED`, `CANCELED`), `assignee`, `candidateGroups`, `candidateUsers`, `priority`, `dueDate`, `followUpDate`, `createdAt`, `updatedAt`, `closedAt`, `closedBy` (`LISTENER`, `RECONCILER`). The OpenAPI document of the task manager is in [`api/taskmanager.json`](api/taskmanager.json).
