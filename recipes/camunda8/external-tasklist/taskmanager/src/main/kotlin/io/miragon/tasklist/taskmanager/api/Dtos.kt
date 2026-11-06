@@ -82,6 +82,8 @@ data class TaskPage(val items: List<TaskDto>, val total: Long, val from: Int, va
 data class Facet(val value: String, val label: String, val count: Long)
 
 data class Facets(
+    /** `ANY`, `UNASSIGNED` and, when the user is known, `MINE`: the values of the `assignment` filter. */
+    val assignments: List<Facet>,
     val domains: List<Facet>,
     val candidateGroups: List<Facet>,
     val processes: List<Facet>,

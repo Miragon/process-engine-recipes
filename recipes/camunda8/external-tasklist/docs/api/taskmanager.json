@@ -49,6 +49,12 @@
       },
       "Facets" : {
         "properties" : {
+          "assignments" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Facet"
+            },
+            "type" : "array"
+          },
           "candidateGroups" : {
             "items" : {
               "$ref" : "#/components/schemas/Facet"
@@ -74,7 +80,7 @@
             "type" : "array"
           }
         },
-        "required" : [ "candidateGroups", "domains", "processes", "states" ],
+        "required" : [ "assignments", "candidateGroups", "domains", "processes", "states" ],
         "type" : "object"
       },
       "FormView" : {
@@ -719,6 +725,14 @@
           "schema" : {
             "default" : "OPEN",
             "enum" : [ "OPEN", "COMPLETED", "CANCELED", "CLOSED", "ALL" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "One of the demo users (GET /api/users), for example alice",
+          "in" : "header",
+          "name" : "X-Demo-User",
+          "required" : false,
+          "schema" : {
             "type" : "string"
           }
         } ],

@@ -114,7 +114,9 @@ class TaskRepositoryTest(@Autowired private val tasks: TaskRepository) {
         assertThat(keys(TaskQuery(states = listOf(TaskState.COMPLETED)))).containsExactly(done.userTaskKey)
         assertThat(tasks.search(TaskQuery(states = null)).second).isEqualTo(3)
 
-        val facets = tasks.facets(listOf(TaskState.OPEN))
+        val facets = tasks.facets(listOf(TaskState.OPEN), "bob")
+        assertThat(facets.assignments).isEqualTo(AssignmentCounts(any = 2, unassigned = 1, mine = 1))
+        assertThat(tasks.facets(listOf(TaskState.OPEN), null).assignments.mine).isZero()
         assertThat(facets.domains).containsExactly("order" to 1L, "payment" to 1L)
         assertThat(facets.candidateGroups).containsExactly("finance" to 1L, "sales" to 1L)
     }

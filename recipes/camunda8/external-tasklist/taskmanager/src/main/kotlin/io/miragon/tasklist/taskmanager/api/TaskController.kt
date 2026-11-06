@@ -77,9 +77,14 @@ class TaskController(
     }
 
     @GetMapping("/facets")
-    fun facets(@RequestParam(defaultValue = "OPEN") state: StateFilter): Facets {
-        val counts = tasks.facets(state.states)
+    fun facets(user: UserContext?, @RequestParam(defaultValue = "OPEN") state: StateFilter): Facets {
+        val counts = tasks.facets(state.states, user?.id)
         return Facets(
+            assignments = listOfNotNull(
+                Facet(TaskQuery.Assignment.ANY.name, "All tasks", counts.assignments.any),
+                user?.let { Facet(TaskQuery.Assignment.MINE.name, "Mine", counts.assignments.mine) },
+                Facet(TaskQuery.Assignment.UNASSIGNED.name, "Unassigned", counts.assignments.unassigned),
+            ),
             domains = counts.domains.map { (domain, count) -> Facet(domain, applications.label(domain), count) },
             candidateGroups = counts.candidateGroups.map { (group, count) -> Facet(group, group, count) },
             processes = counts.processes.map { (id, count) -> Facet(id, counts.processNames[id] ?: id, count) },

@@ -293,13 +293,22 @@ class TaskRepository(private val jdbc: JdbcClient) {
         return rows to total
     }
 
-    fun facets(states: List<TaskState>?): FacetCounts {
+    fun facets(states: List<TaskState>?, userId: String?): FacetCounts {
         val condition = if (states == null) "" else "WHERE state = ANY(:states)"
         fun count(select: String) = jdbc.sql(select.replace("#WHERE", condition))
             .apply { if (states != null) param("states", states.map(TaskState::name).toTypedArray()) }
             .query { rs, _ -> rs.getString(1) to rs.getLong(2) }
             .list()
+        val assignments = jdbc.sql(
+            "SELECT count(*), count(*) FILTER (WHERE assignee IS NULL), count(*) FILTER (WHERE assignee = CAST(:userId AS text)) " +
+                "FROM user_task $condition",
+        )
+            .apply { if (states != null) param("states", states.map(TaskState::name).toTypedArray()) }
+            .param("userId", userId)
+            .query { rs, _ -> AssignmentCounts(any = rs.getLong(1), unassigned = rs.getLong(2), mine = rs.getLong(3)) }
+            .single()
         return FacetCounts(
+            assignments = assignments,
             domains = count("SELECT domain, count(*) FROM user_task #WHERE GROUP BY domain ORDER BY domain"),
             candidateGroups = count(
                 "SELECT g, count(*) FROM user_task CROSS JOIN LATERAL unnest(candidate_groups) AS g #WHERE GROUP BY g ORDER BY g",
@@ -370,12 +379,16 @@ class TaskRepository(private val jdbc: JdbcClient) {
 }
 
 data class FacetCounts(
+    val assignments: AssignmentCounts,
     val domains: List<Pair<String, Long>>,
     val candidateGroups: List<Pair<String, Long>>,
     val processes: List<Pair<String, Long>>,
     val states: List<Pair<String, Long>>,
     val processNames: Map<String, String?>,
 )
+
+/** Tasks in the states asked for, all of them, those without an assignee and those of the user. */
+data class AssignmentCounts(val any: Long, val unassigned: Long, val mine: Long)
 
 /** Name, process name and form reference of a user task, taken from the BPMN model or from Camunda. */
 data class TaskDetails(val name: String?, val processName: String?, val formRef: String?)
