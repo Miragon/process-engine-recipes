@@ -23,7 +23,7 @@
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   font-size: 15px;
   font-weight: 650;
   color: var(--ink);
@@ -91,9 +91,9 @@
 .user-switcher {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   height: 40px;
-  padding: 0 10px 0 6px;
+  padding: 0 12px 0 8px;
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -133,14 +133,14 @@
 }
 
 .rail {
-  padding: 20px 14px;
+  padding: 20px 16px;
   overflow-y: auto;
   border-right: 1px solid var(--line);
   scrollbar-width: thin;
 }
 
 .rail__section + .rail__section {
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 .rail__title {
@@ -164,7 +164,7 @@
   gap: 8px;
   width: 100%;
   height: 32px;
-  padding: 0 10px;
+  padding: 0 12px;
   font-weight: 500;
   text-align: left;
   color: var(--ink);
@@ -181,8 +181,8 @@
 
 .rail__option.is-selected::before {
   position: absolute;
-  top: 7px;
-  bottom: 7px;
+  top: 8px;
+  bottom: 8px;
   left: 0;
   width: 2px;
   content: '';
@@ -220,7 +220,7 @@
   flex: none;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px 12px;
+  padding: 16px 20px 12px;
 }
 
 .list__head h2 {
@@ -408,7 +408,7 @@
 .facts {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 14px 24px;
+  gap: 16px 24px;
   margin: 0;
 }
 
@@ -559,14 +559,14 @@
   display: grid;
   grid-template-columns: 16px 1fr auto;
   align-items: start;
-  gap: 10px;
-  padding: 0 0 14px;
+  gap: 12px;
+  padding: 0 0 16px;
   font-size: 13px;
 }
 
 .timeline li:not(:last-child)::before {
   position: absolute;
-  top: 14px;
+  top: 16px;
   bottom: 0;
   left: 7px;
   width: 2px;
@@ -602,7 +602,7 @@
 .detail-skeleton .card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 /* Before a demo user is chosen */
@@ -633,7 +633,7 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px;
   text-align: left;
   background: var(--raised);
   border: 1px solid var(--line);
