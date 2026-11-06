@@ -74,9 +74,11 @@ export function StartFormDetail({ start, onClose, onOpenTask }: StartFormDetailP
 
       {placed && (
         <StatusBox tone={gaveUp ? 'info' : 'success'} title={placed.businessId ? `${placed.businessId} placed` : 'Process started'}>
-          {gaveUp
-            ? 'Its first task has not shown up yet. It appears in the list as soon as the process creates it.'
-            : 'Its first task opens here as soon as the process creates it.'}
+          {!placed.businessId
+            ? 'Its tasks appear in the list as soon as the process creates them.'
+            : gaveUp
+              ? 'Its first task has not shown up yet. It appears in the list as soon as the process creates it.'
+              : 'Its first task opens here as soon as the process creates it.'}
         </StatusBox>
       )}
 
