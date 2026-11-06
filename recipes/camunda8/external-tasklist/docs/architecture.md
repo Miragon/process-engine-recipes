@@ -56,7 +56,7 @@ Each application serves the provider API `/tasklist/v1` and checks the task mana
 
 - **`TaskContext`** comes from the projection and the signed-in user, never from the browser: keys, `formRef`, `businessId`, state, assignee, candidate groups and `user {id, groups}`. The application loads its entities by business ID and binds only the fields the form may change.
 - **Completion** belongs to the application: it validates, stores its change and completes the user task in one transaction. Camunda answers `204`: commit, `204`. `404`: roll back, `409`. Denied by a listener: roll back, `422`. `504` or no answer: commit, `202`. Unreachable: roll back, `503`.
-- **Problems** are `application/problem+json` with a `code`. A `422` for invalid fields lists `errors: [{field, message}]` with dotted field paths; a listener's denial gives only its reason.
+- **Problems** are `application/problem+json` with a `code`: `BAD_REQUEST` (400), `UNAUTHORIZED` (401), `FORM_NOT_FOUND` (404), `DRAFT_NOT_SUPPORTED` (405), `TASK_NOT_ACTIVE` or `CONFLICT` (409), `VALIDATION_FAILED` (422), `UNAVAILABLE` (503). A `422` for invalid fields lists `errors: [{field, message}]` with dotted field paths; a listener's denial gives only its reason.
 - **Versions.** A form reference carries its version: an incompatible change adds `check-order@2`, and `@1` stays while instances use it. The provider API is versioned in its path, the [form protocol](../tasklist-contract/src/main/typescript/PROTOCOL.md) of HTML forms in its messages.
 
 The services call each other over REST with OpenAPI ([`api/`](api)), never through Camunda: each correlates messages only into its own processes. The calling job worker retries `5xx` and timeouts with backoff (the order application also `408` and `429`) and raises an incident for every other answer.
@@ -65,7 +65,7 @@ The services call each other over REST with OpenAPI ([`api/`](api)), never throu
 
 ![The task manager: controllers for the tasklist, the listener worker and the reconciler; services; adapters to the applications, PostgreSQL and Camunda](../images/taskmanager.png)
 
-- **Global user task listener** `taskmanager-projection`: all events, after the listeners of the models, lowest priority, 10 retries with growing backoff. The task manager registers it at startup and reports `DOWN` until then; the listener's handler only writes the projection.
+- **Global user task listener** `taskmanager-projection`: all events, after the listeners of the models, lowest priority, 10 retries with growing backoff, then an incident. The task manager registers it at startup and reports `DOWN` until then; the listener's handler only writes the projection.
 - **Projection** `user_task` with the history `user_task_event`. Each listener event is one upsert guarded by `last_job_key`: redeliveries and late jobs change nothing, and a task the listener closed never reopens; the next listener event corrects one the reconciler closed. Apart from `subject` and the business ID, no variables, form or domain data are stored.
 - **Tasklist API** `/api` ([OpenAPI](api/taskmanager.json)): tasks with filters and facets, claim, unclaim, update, form, draft, completion, start forms, frames, and server-sent events `task-changed {userTaskKey, state, domain}` without IDs to resume from. The user is `X-Demo-User`. Candidates claim and update (everyone, if the task names none); only the assignee unclaims, saves drafts and completes, and everyone else gets the form read-only. Commands return after Camunda ran the listeners, so the projection is current when the answer arrives.
 - **Reconciler**, every 30 s: closes tasks Camunda reports as closed, and after 30 min tasks its search no longer knows; once after startup it inserts tasks created before the listener existed; it fills in missing names and form references.
@@ -101,14 +101,17 @@ A process start or correlation commits only if Camunda accepted it, a completion
 
 | Decision | Instead of |
 | --- | --- |
-| Camunda user tasks and one global listener: every event in order and before the process moves on, nothing to declare in the models, works in SaaS | job-worker user tasks, an exporter, polling the search |
+| Camunda user tasks and one global listener: every event in order and before the process moves on, nothing to declare in the models, available in SaaS too | job-worker user tasks, an exporter, polling the search |
 | A projection in the task manager for filters, routing and history | Camunda's search on every request |
 | Forms, validation and completion stay with the application | Camunda Forms rendered by the tasklist |
-| The task manager is the browser's only backend, so applications can trust the `TaskContext` | forms loaded from each application |
+| The task manager is the browser's only backend, so the `TaskContext` comes only from it | forms loaded from each application |
 | REST with OpenAPI between services | Camunda messages across services, Kafka |
 | A static registry of applications | self-registration |
 
 Limits:
+- Every user task of the cluster passes the task manager, also those of processes that do not take part: in 8.10 a global listener cannot be limited to some processes.
+- One worker thread handles the listener jobs of the whole cluster. A database outage of more than about 5 to 10 minutes turns the waiting jobs into incidents in every team's instances.
+- The listener stays registered when the task manager stops. Delete it before you remove the task manager for good, or every user task waits.
 - No real authentication: demo users and static tokens.
 - Server-sent events reach the clients of one task manager instance only.
-- Tenant IDs are stored but not used.
+- Tenants are not separated: tenant IDs are stored, and every user sees the tasks of all tenants.

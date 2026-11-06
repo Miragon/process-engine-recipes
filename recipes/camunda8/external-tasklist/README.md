@@ -138,7 +138,7 @@ Set `KEEP_STACK=1` to keep the stack running after the test, and `UPDATE_SCREENS
 **Join the tasklist with another process application:**
 
 1. Model the user tasks along the [BPMN conventions](docs/architecture.md#contract-of-a-process-application): `externalReference` with a versioned form reference, the task header `domain`, the `businessId` of the instance and an optional `subject` variable.
-2. Add `io.miragon.recipes:tasklist-contract`, put `@EnableTasklistProvider` on the application and write one `TaskFormHandler` per form version (and a `StartFormHandler` per start form). Set `tasklist.provider.token`; if it serves HTML forms, also set `tasklist.provider.frame-bundle`.
+2. Add `io.miragon.recipes:tasklist-contract`, put `@EnableTasklistProvider` on the application and write one `TaskFormHandler` per form version (and a `StartFormHandler` per start form). Set `tasklist.provider.token`; if it serves HTML forms, also set `tasklist.provider.frame-bundle`. Keep `camunda.client.request-timeout` above Camunda's 15 s (the recipe uses `20s`), so a slow listener chain arrives as `504` and the completion answers `202`.
 3. Register it in the task manager: `taskmanager.applications.<domain>.label`, `.base-url` and `.token`.
 
 **Configuration of the task manager** (`taskmanager/src/main/resources/application.yaml`):
@@ -155,7 +155,7 @@ Set `KEEP_STACK=1` to keep the stack running after the test, and `UPDATE_SCREENS
 ## Kitchen notes
 
 - **Every user task in the cluster waits for the task manager.** The listener blocks each transition until its job is completed. While the task manager is down, tasks stay in `CREATING`, `ASSIGNING`, `COMPLETING` or `CANCELING`, and REST commands answer `504` after 15 s. Nothing is lost: the waiting jobs are handled when it is back. A listener job that fails (the database restarts, say) waits 2 s, 4 s and so on up to a minute before the next attempt; after 10 attempts it raises an incident, which you resolve in Operate. Keep the listener handler to one database write: this one looks up names in a cache, loads unknown BPMN in the background and pushes server-sent events from its own threads.
-- **A process instance modification does not trigger `canceling`.** Camunda skips user task listeners when a modification terminates a task. The reconciler closes such tasks after about `interval` + `lag`, and a completion attempt finds them gone at once.
+- **A process instance modification does not trigger `canceling`.** Camunda skips user task listeners when a modification terminates a task. The reconciler closes such tasks after about `interval` + `lag` (with more than `batch-size` open tasks, after a few rounds), and a completion attempt finds them gone at once.
 - **Camunda's search is eventually consistent.** User task details, BPMN XML and even `GET /v2/global-task-listeners/{id}` lag about a second behind. The task manager reads the listener jobs instead, treats `409` on registration as "already registered", and only the reconciler reads the search.
 - **`@JobWorker(type = "${...}")` does not resolve placeholders.** The listener's job type is a constant, `taskmanager.projection`.
 - **Camunda Process Test purges the cluster before every test**, the global listener included, and starts the keys over. The task manager's integration test registers the listener again and empties the projection in `@BeforeEach`.
@@ -166,7 +166,7 @@ Set `KEEP_STACK=1` to keep the stack running after the test, and `UPDATE_SCREENS
 - **A form frame that fails stays silent.** When an application cannot deliver its micro-frontend, the iframe shows the error but never sends `ready`. The tasklist notices only after 15 s and offers Retry.
 - **Each tab holds a connection for the events.** Over HTTP/1.1 a browser opens at most six connections per host, so many open tabs slow each other down. Serve the tasklist over HTTP/2 if people work with many tabs.
 - **Two systems, one action.** An application commits a process start only if Camunda accepted it, and a completion also when Camunda's answer is late or lost (`202`). So a lost answer can leave a process running without its row, or a stored change on a task that stays open. Use an outbox if you cannot accept that.
-- **Demo only:** there is no authentication (`X-Demo-User`), the tokens between the services are static, and the stack keeps no data after `down -v`. Server-sent events only reach the clients of one task manager instance.
+- **Demo only:** there is no authentication (`X-Demo-User`), the tokens between the task manager and the applications are static, and the stack keeps no data after `down -v`. Server-sent events only reach the clients of one task manager instance.
 - **Version exceptions.** Java 25 is the LTS (Dependabot offered 27). Flyway follows the Spring Boot BOM (12.4). Camunda minor and major upgrades and Elasticsearch majors are migrations, so Dependabot ignores them. The tasklist and the micro-frontend stay on TypeScript 6 until typescript-eslint supports 7. The Node version in `pom.xml` is not updated by Dependabot.
 
 ## Variations
