@@ -1,11 +1,16 @@
 import type { UISchemaElement } from '@jsonforms/core';
 import { JsonForms } from '@jsonforms/react';
 import { JsonFormsStyleContext } from '@jsonforms/vanilla-renderers';
+import type { ComponentProps } from 'react';
 import type { FormData, JsonFormsView } from '../api/types';
 import { translateError, type FormError } from './jsonFormsErrors';
 import { FORM_CELLS, FORM_RENDERERS, FORM_STYLE_CONTEXT } from './jsonFormsSetup';
+import { createSchemaValidator } from './schemaValidator';
 
 const I18N = { locale: 'en', translateError };
+
+/** Stands in for Ajv, whose generated code the content security policy forbids (see schemaValidator.ts). */
+const VALIDATOR = createSchemaValidator() as unknown as NonNullable<ComponentProps<typeof JsonForms>['ajv']>;
 
 interface JsonFormProps {
   form: JsonFormsView;
@@ -27,6 +32,7 @@ export function JsonForm({ form, data, readOnly, errors, onChange }: JsonFormPro
           data={data}
           renderers={FORM_RENDERERS}
           cells={FORM_CELLS}
+          ajv={VALIDATOR}
           readonly={readOnly}
           validationMode="ValidateAndHide"
           additionalErrors={errors}
