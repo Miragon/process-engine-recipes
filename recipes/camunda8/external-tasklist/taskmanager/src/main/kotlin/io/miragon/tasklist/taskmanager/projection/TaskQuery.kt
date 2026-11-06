@@ -11,6 +11,7 @@ data class TaskQuery(
     val userId: String? = null,
     val candidateGroup: String? = null,
     val processDefinitionId: String? = null,
+    val processInstanceKey: Long? = null,
     val priorityMin: Int? = null,
     val dueBefore: OffsetDateTime? = null,
     val q: String? = null,

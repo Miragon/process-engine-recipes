@@ -622,6 +622,14 @@
           }
         }, {
           "in" : "query",
+          "name" : "processInstanceKey",
+          "required" : false,
+          "schema" : {
+            "pattern" : "^[0-9]+$",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
           "name" : "priorityMin",
           "required" : false,
           "schema" : {

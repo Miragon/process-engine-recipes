@@ -120,7 +120,7 @@ The tasklist calls only this API. The signed-in user is the header `X-Demo-User`
 
 | Call | Purpose |
 | --- | --- |
-| `GET /api/tasks?state=&domain=&assignment=&candidateGroup=&processDefinitionId=&priorityMin=&dueBefore=&q=&sort=&descending=&from=&limit=` | Page of tasks from the projection. `state`: `OPEN` (default), `COMPLETED`, `CANCELED`, `CLOSED`, `ALL`. `assignment`: `MINE`, `UNASSIGNED`, `ANY` (default). `q` searches name, subject, business ID and element ID. `sort`: `CREATED_AT` (default, newest first), `PRIORITY` (highest first), `DUE_DATE` (soonest first); `descending` flips the default order. `limit` is at most 200. |
+| `GET /api/tasks?state=&domain=&assignment=&candidateGroup=&processDefinitionId=&processInstanceKey=&priorityMin=&dueBefore=&q=&sort=&descending=&from=&limit=` | Page of tasks from the projection. `state`: `OPEN` (default), `COMPLETED`, `CANCELED`, `CLOSED`, `ALL`. `assignment`: `MINE`, `UNASSIGNED`, `ANY` (default). `q` searches name, subject, business ID and element ID; `processInstanceKey` finds the tasks of one instance. `sort`: `CREATED_AT` (default, newest first), `PRIORITY` (highest first), `DUE_DATE` (soonest first); `descending` flips the default order. `limit` is at most 200. |
 | `GET /api/tasks/facets?state=` | Counts per domain, candidate group, process and state for the filter bar |
 | `GET /api/tasks/{key}` | One task |
 | `GET /api/tasks/{key}/history` | Its lifecycle events |

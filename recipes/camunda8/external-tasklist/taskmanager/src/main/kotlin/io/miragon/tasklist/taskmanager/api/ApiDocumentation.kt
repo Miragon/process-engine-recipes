@@ -35,11 +35,11 @@ class ApiDocumentation {
         operation
     }
 
-    /** Camunda keys in paths are strings, like everywhere else in the API: they exceed JavaScript's safe integers. */
+    /** Camunda keys in paths and queries are strings, like everywhere else in the API: they exceed JavaScript's safe integers. */
     @Bean
     fun keysAsStrings(): OperationCustomizer = OperationCustomizer { operation, _ ->
         operation.parameters.orEmpty()
-            .filter { it.`in` == "path" && it.schema?.format == "int64" }
+            .filter { it.schema?.format == "int64" }
             .forEach { it.schema = StringSchema().pattern("^[0-9]+$") }
         operation
     }

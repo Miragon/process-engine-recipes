@@ -263,6 +263,10 @@ class TaskRepository(private val jdbc: JdbcClient) {
             where += "process_definition_id = :processDefinitionId"
             params["processDefinitionId"] = it
         }
+        query.processInstanceKey?.let {
+            where += "process_instance_key = :processInstanceKey"
+            params["processInstanceKey"] = it
+        }
         query.priorityMin?.let {
             where += "priority >= :priorityMin"
             params["priorityMin"] = it
