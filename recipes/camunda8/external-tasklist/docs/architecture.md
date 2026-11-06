@@ -11,7 +11,7 @@ This document describes the contracts between the parts of the recipe. The [READ
 | Task manager | 8090 | the task projection, the API of the tasklist, routing to the applications |
 | Order application (`domain=order`) | 8081 | orders, the order process and its forms |
 | Payment application (`domain=payment`) | 8082 | invoices, the payment process and its forms |
-| Tasklist | 3000 | the browser UI; talks only to the task manager |
+| Tasklist (nginx) | 3000 | the browser UI; nginx serves it and passes `/api` to the task manager, the only backend it talks to |
 | PostgreSQL | 5432 | one database each for the task manager, orders and payments |
 
 ## Integration contract
@@ -155,6 +155,16 @@ Services never integrate through Camunda: each one correlates messages only into
 
 The calling side is always a job worker. It completes the job on `2xx`. On `5xx`, `503` or a timeout it fails the job with one retry less and exponential backoff. Every other answer, `400` and `409` included, fails the job without retries: that raises an incident for a human, with the answer as its message (the workers complete and fail their jobs themselves, so the incident shows the reason and not a stack trace). Redirects are never followed.
 
+## Tasklist
+
+The tasklist ([`tasklist/`](../tasklist)) is one page in the Miragon design: filter rail, task list and the open task side by side ([design record](design/decision.md)).
+
+- **One origin.** nginx serves the built app on port 3000 and passes `/api` to the task manager, so the browser talks to nothing else. The app's policy is `default-src 'self'` without inline code. Only the task manager's frames under `/api/forms/` can be framed, and they bring their own sandboxed policy.
+- **State in the URL.** Filters, search, sort, the open task and the open start form are query parameters (`assignment`, `domain`, `state`, `group`, `q`, `sort`, `task`, `start`), so a link opens the same view. The demo user is kept in the browser's local storage and sent as `X-Demo-User`.
+- **Live updates.** The tasklist listens to `GET /api/events`. A moment after a burst of `task-changed` events it reloads the lists, the counts and the changed tasks, but not a form the user is filling in; a canceled open task turns read-only and says why. The events carry no ID to resume from, so after a lost connection the tasklist reconnects with a growing delay and reloads everything but the forms.
+- **Forms.** A `json-forms` view is rendered with JSON Forms and validated with `@cfworker/json-schema`, because Ajv generates code that the policy forbids. An `html` view is loaded from `/api/forms/{domain}/{formRef}/frame` into an iframe with `sandbox="allow-scripts"`. The tasklist accepts [form protocol](../tasklist-contract/src/main/typescript/PROTOCOL.md) messages only from that frame's window, with origin `null` and version 1, and answers each `ready` with one `init`. A frame without `ready` after 15 s counts as failed and offers Retry.
+- **Answers.** `422` shows the application's field errors at their controls. `409` and `403` reload the task, which changed in the meantime. `202` makes the form read-only with a note that the task closes once its listeners finished. A form that answers `503` is asked for again after `Retry-After`.
+
 ## Task projection
 
 The task manager keeps one row per user task in its own PostgreSQL database (`taskmanager/src/main/resources/db/migration/V1__projection.sql`):
@@ -227,6 +237,9 @@ User task listeners block: Camunda keeps the task in `CREATING`, `ASSIGNING`, `U
 | HTML forms in a sandboxed iframe with their own CSP | A micro-frontend cannot read the tasklist or send data anywhere (#159) | trusting the application's script in the tasklist's origin |
 | REST with OpenAPI between the services | A standard, versioned API; Camunda only orchestrates inside one service | Camunda messages across services, Kafka (see Variations) |
 | A static registry of applications | Explicit: the task manager only forwards to configured applications | self-registration (see Variations) |
+| The tasklist and the task manager on one origin behind nginx | No CORS, and the app's policy can stay at `connect-src 'self'` | a tasklist that calls the task manager on another origin |
+| JSON Forms validated with `@cfworker/json-schema` | It interprets schemas, so the policy needs no `'unsafe-eval'` | Ajv, JSON Forms' default, which compiles schemas into code |
+| The Split desk layout | Filters, list and the open task stay visible together while people work through the list ([design record](design/decision.md)) | a dense table with a drawer, a queue next to a workspace |
 
 ## Limits
 
