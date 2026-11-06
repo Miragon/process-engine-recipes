@@ -4,7 +4,7 @@ Open this folder as the project. Build with `./mvnw -B verify` (JDK 25; the buil
 
 The contracts are in `docs/architecture.md`, `tasklist-contract/` and the OpenAPI documents in `docs/api/`; a test fails when an API changes, refresh them with `./mvnw verify -Dapi.snapshot.update=true`. Keep the services independent: the applications share only `tasklist-contract`, call each other only through their REST APIs (never Camunda messages across services) and never call the task manager. The task manager's listener handler must stay a pure database write, because every user task in the cluster waits for it.
 
-The tasklist UI is `tasklist/` (React, Vite, npm). `npm run dev` serves it with `/api` proxied to the task manager on port 8090; after the task manager's API changed, refresh `docs/api/taskmanager.json` and run `npm run generate:api`. `UPDATE_SCREENSHOT=1 ./e2e.sh` refreshes `images/tasklist.png`.
+The tasklist UI is `tasklist/` (React, Vite, npm). `npm run dev` serves it with `/api` proxied to the task manager on port 8090 (`TASKMANAGER_URL` overrides it); after the task manager's API changed, refresh `docs/api/taskmanager.json` and run `npm run generate:api`. `UPDATE_SCREENSHOT=1 ./e2e.sh` refreshes `images/tasklist.png`.
 
 Dependabot does not update the Node version in `pom.xml`, and the frontends stay on TypeScript 6 until typescript-eslint supports 7. `docs/history/` is the original thesis material and is not maintained.
 
