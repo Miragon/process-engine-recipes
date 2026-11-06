@@ -131,7 +131,7 @@ curl -s -H 'X-Demo-User: alice' 'localhost:8090/api/tasks?state=CANCELED'
 | `ui/check-payment` | Bob claims *Check payment*, the application refuses a wrong amount with a field error, and the invoice amount completes the task |
 | `ui/cancel` | A canceled order turns its open task read-only at once, without a reload |
 
-Set `KEEP_STACK=1` to keep the stack running after the test, and `UPDATE_SCREENSHOT=1` to take `images/tasklist.png` again.
+Set `KEEP_STACK=1` to keep the stack running after the test, and `UPDATE_SCREENSHOT=1` to take `images/tasklist.png` again. On Linux, install Chromium's system packages once with `npx playwright install-deps chromium` in `e2e/` (it needs root); CI does that itself.
 
 ## Take it home
 
