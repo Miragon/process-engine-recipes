@@ -1,9 +1,11 @@
 package io.miragon.tasklist.taskmanager
 
 import io.camunda.client.CamundaClient
+import io.camunda.client.api.search.enums.UserTaskState
 import io.camunda.process.test.api.CamundaAssert
 import io.camunda.process.test.api.CamundaSpringProcessTest
 import io.miragon.tasklist.taskmanager.projection.GlobalListenerRegistration
+import io.miragon.tasklist.taskmanager.reconcile.Reconciler
 import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.untilAsserted
@@ -22,17 +24,19 @@ import tools.jackson.databind.JsonNode
 import tools.jackson.databind.json.JsonMapper
 import java.net.ServerSocket
 import java.time.Duration
+import java.time.OffsetDateTime
 
 /**
  * The whole chain against a real Camunda 8.10: the global listener feeds the projection, the task manager
  * claims and updates through Camunda and forwards forms and completions to the owning application
- * (a provider inside this test).
+ * (a provider inside this test), and the reconciler covers what no listener reports.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @CamundaSpringProcessTest
 @Import(PostgresTestConfiguration::class, ReviewProvider::class)
 class TaskmanagerIntegrationTest(
     @Autowired private val camunda: CamundaClient,
+    @Autowired private val reconciler: Reconciler,
     @Autowired private val mapper: JsonMapper,
     @Autowired private val registration: GlobalListenerRegistration,
     @Autowired private val jdbc: JdbcClient,
@@ -115,6 +119,28 @@ class TaskmanagerIntegrationTest(
         val attempt = call(HttpMethod.POST, "/api/tasks/$key/completion", body = mapOf("data" to mapOf("approved" to true)))
         assertThat(attempt.status).isEqualTo(409)
         assertThat(attempt.json()["code"].asString()).isEqualTo("TASK_NOT_ACTIVE")
+    }
+
+    @Test
+    fun `closes a task ended by process instance modification through the reconciler`() {
+        val key = startReview("DOC-4")
+        val camundaTask = camunda.newUserTaskGetRequest(key.toLong()).send().join()
+
+        camunda.newModifyProcessInstanceCommand(camundaTask.processInstanceKey)
+            .terminateElement(camundaTask.elementInstanceKey)
+            .send()
+            .join()
+        await.atMost(Duration.ofSeconds(30)) untilAsserted {
+            assertThat(camunda.newUserTaskGetRequest(key.toLong()).send().join().state).isEqualTo(UserTaskState.CANCELED)
+        }
+        // No canceling listener ran, so the projection still shows the task as open.
+        assertThat(call(HttpMethod.GET, "/api/tasks/$key").json()["state"].asString()).isEqualTo("OPEN")
+
+        reconciler.reconcileOnce(OffsetDateTime.now().plusMinutes(1))
+
+        val task = call(HttpMethod.GET, "/api/tasks/$key").json()
+        assertThat(task["state"].asString()).isEqualTo("CANCELED")
+        assertThat(task["closedBy"].asString()).isEqualTo("RECONCILER")
     }
 
     @Test
