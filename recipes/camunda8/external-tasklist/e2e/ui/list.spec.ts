@@ -21,7 +21,8 @@ test('the desk filters the tasks of both applications by domain, assignment, gro
   await rail.getByRole('button', { name: /^Payments/ }).click();
   await expect(page).toHaveURL(/domain=payment/);
   await expect(row(page, mineId)).toHaveCount(0);
-  for (const task of await taskList(page).getByRole('option').all()) await expect(task).toContainText('Payments');
+  // Retries until the list shows the filtered result; iterating a snapshot of the rows would race the reload.
+  await expect(taskList(page).getByRole('option').filter({ hasNotText: 'Payments' })).toHaveCount(0);
   await rail.getByRole('button', { name: /^Orders/ }).click();
   await expect(page).toHaveURL(/domain=order/);
   await expect(row(page, mineId)).toBeVisible();
@@ -40,7 +41,7 @@ test('the desk filters the tasks of both applications by domain, assignment, gro
   // Candidate group
   await rail.getByRole('button', { name: /^sales/ }).click();
   await expect(page).toHaveURL(/group=sales/);
-  for (const task of await taskList(page).getByRole('option').all()) await expect(task).toContainText('sales');
+  await expect(taskList(page).getByRole('option').filter({ hasNotText: 'sales' })).toHaveCount(0);
 
   // Search in the top bar, by customer name and by business ID
   const search = page.getByRole('searchbox', { name: 'Search tasks' });
