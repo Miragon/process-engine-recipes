@@ -107,7 +107,7 @@ describe('the frame host', () => {
     expect(posted).toEqual([envelope({ type: 'result', payload: { ok: false, message: "The tasklist couldn't send the form. Try again." } })]);
   });
 
-  test('ignores submit and draft while the form is read-only', async () => {
+  test('answers submit and draft with ok: false while the form is read-only, without sending them', async () => {
     const options = connect({ init: () => ({ ...INIT, readOnly: true }) });
 
     fromFrame(envelope({ type: 'submit', payload: { data: { approved: true } } }));
@@ -116,7 +116,8 @@ describe('the frame host', () => {
 
     expect(options.submit).not.toHaveBeenCalled();
     expect(options.draft).not.toHaveBeenCalled();
-    expect(posted).toEqual([]);
+    const readOnly = envelope({ type: 'result', payload: { ok: false, message: 'The form is read-only now; nothing was sent.' } });
+    expect(posted).toEqual([readOnly, readOnly]);
   });
 
   test('saves drafts only for a form that keeps them', async () => {
@@ -130,7 +131,10 @@ describe('the frame host', () => {
     fromFrame(envelope({ type: 'draft', payload: { data: { items: [] } } }));
     await settle();
     expect(draftable.draft).toHaveBeenCalledWith({ items: [] });
-    expect(posted).toEqual([envelope({ type: 'result', payload: { ok: true, message: 'Draft saved.' } })]);
+    expect(posted).toEqual([
+      envelope({ type: 'result', payload: { ok: false, message: 'This form keeps no drafts.' } }),
+      envelope({ type: 'result', payload: { ok: true, message: 'Draft saved.' } }),
+    ]);
   });
 
   test('handles one submission at a time and ignores data that is not an object', async () => {

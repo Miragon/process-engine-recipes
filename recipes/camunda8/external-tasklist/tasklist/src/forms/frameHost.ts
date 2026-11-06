@@ -28,6 +28,8 @@ export interface FrameHostOptions {
 export const FRAME_HEIGHT = { min: 120, max: 8000 } as const;
 
 const FAILED: ResultPayload = { ok: false, message: "The tasklist couldn't send the form. Try again." };
+const READ_ONLY: ResultPayload = { ok: false, message: 'The form is read-only now; nothing was sent.' };
+const NO_DRAFTS: ResultPayload = { ok: false, message: 'This form keeps no drafts.' };
 
 /** The answer to the frame when sending failed: the message and, for a refusal (422), the field errors. */
 export function refusal(error: unknown): ResultPayload {
@@ -37,8 +39,10 @@ export function refusal(error: unknown): ResultPayload {
 
 /**
  * Listens on the tasklist's window for messages of the frame. Following the protocol it sends `init` once per
- * `ready`, answers each `submit` and `draft` with one `result`, and ignores both while the form is read-only or
- * while an earlier one is still being handled. Returns a function that stops listening.
+ * `ready` and answers each `submit` and `draft` with one `result`: `ok: false` without sending anything while the
+ * form is read-only (or keeps no drafts), so a frame that has not heard of it yet does not wait forever. While an
+ * earlier one is still being handled, the `result` of that one answers the frame. Returns a function that stops
+ * listening.
  */
 export function connectFrame(host: Pick<Window, 'addEventListener' | 'removeEventListener'>, options: FrameHostOptions) {
   let busy = false;
@@ -79,9 +83,11 @@ export function connectFrame(host: Pick<Window, 'addEventListener' | 'removeEven
       case 'submit':
       case 'draft': {
         const data = dataOf(message.payload);
+        if (data === null || busy) return;
         const { readOnly, draftable } = options.init();
-        if (data === null || readOnly || busy || (message.type === 'draft' && !draftable)) return;
-        handOver(frame, () => (message.type === 'submit' ? options.submit(data) : options.draft(data)));
+        if (readOnly) post(frame, { type: 'result', payload: READ_ONLY });
+        else if (message.type === 'draft' && !draftable) post(frame, { type: 'result', payload: NO_DRAFTS });
+        else handOver(frame, () => (message.type === 'submit' ? options.submit(data) : options.draft(data)));
         break;
       }
     }

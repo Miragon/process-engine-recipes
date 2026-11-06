@@ -116,7 +116,7 @@ export function StartFormDetail({ start, onClose, onOpenTask }: StartFormDetailP
         />
       ) : (
         <>
-          {/* The frame shows its own confirmation; once placed, the host ignores further submissions. */}
+          {/* The frame shows its own confirmation; once placed, the host answers further submissions with ok: false. */}
           <FormFrame
             domain={start.domain}
             domainLabel={domainLabel}
