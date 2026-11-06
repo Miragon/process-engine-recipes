@@ -224,6 +224,9 @@ function TaskRows({ tasks, selected, onOpen }: { tasks: Task[]; selected: string
           aria-label={[task.name, task.subject].filter(Boolean).join(', ')}
           tabIndex={task.userTaskKey === focusable ? 0 : -1}
           className={classes('row', task.userTaskKey === selected && 'is-selected')}
+          onFocus={() => {
+            setActive(task.userTaskKey);
+          }}
           onClick={() => {
             setActive(task.userTaskKey);
             onOpen(task);
