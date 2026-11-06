@@ -19,6 +19,7 @@
     <modules>
         <module>tasklist-contract</module>
         <module>taskmanager</module>
+        <module>processes/payment</module>
     </modules>
 
     <properties>

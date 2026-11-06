@@ -1,0 +1,252 @@
+{
+  "components" : {
+    "schemas" : {
+      "Customer" : {
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "email", "name" ],
+        "type" : "object"
+      },
+      "PaymentDetails" : {
+        "properties" : {
+          "amount" : {
+            "type" : "number"
+          },
+          "amountReceived" : {
+            "type" : [ "number", "null" ]
+          },
+          "callbackUrl" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "currency" : {
+            "type" : "string"
+          },
+          "customer" : {
+            "$ref" : "#/components/schemas/Customer"
+          },
+          "decidedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "orderId" : {
+            "type" : "string"
+          },
+          "paymentId" : {
+            "type" : "string"
+          },
+          "processInstanceKey" : {
+            "description" : "A string, because Camunda keys exceed the integer range of JavaScript",
+            "type" : [ "string", "null" ]
+          },
+          "rejectionReason" : {
+            "type" : [ "string", "null" ]
+          },
+          "remindersSent" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "reportedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "enum" : [ "OPEN", "PAID", "REJECTED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "amount", "callbackUrl", "createdAt", "currency", "customer", "orderId", "paymentId", "remindersSent", "status" ],
+        "type" : "object"
+      },
+      "PaymentReference" : {
+        "properties" : {
+          "paymentId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "paymentId" ],
+        "type" : "object"
+      },
+      "PaymentRequest" : {
+        "properties" : {
+          "amount" : {
+            "description" : "Above 0, at most two decimals",
+            "example" : 129.9,
+            "type" : "number"
+          },
+          "callbackUrl" : {
+            "description" : "Receives `POST {paymentId, status, reason}` once the payment is decided. Its host must be one of `payment.callback.allowed-hosts`.",
+            "example" : "http://order-app:8081/api/v1/orders/ORD-1001/payment-result",
+            "type" : "string"
+          },
+          "currency" : {
+            "description" : "ISO 4217 code",
+            "example" : "EUR",
+            "type" : "string"
+          },
+          "customer" : {
+            "$ref" : "#/components/schemas/Customer"
+          },
+          "orderId" : {
+            "description" : "One payment per order",
+            "example" : "ORD-1001",
+            "type" : "string"
+          }
+        },
+        "required" : [ "amount", "callbackUrl", "currency", "customer", "orderId" ],
+        "type" : "object"
+      },
+      "ProblemDetail" : {
+        "properties" : {
+          "detail" : {
+            "type" : "string"
+          },
+          "instance" : {
+            "format" : "uri",
+            "type" : "string"
+          },
+          "properties" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "status" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "type" : {
+            "format" : "uri",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      }
+    }
+  },
+  "info" : {
+    "description" : "Payments of orders. A payment starts the payment process; its result goes to the callback URL.",
+    "title" : "Payment application",
+    "version" : "v1"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/api/v1/payments" : {
+      "post" : {
+        "description" : "Stores the payment and starts its process. Repeating a request for the same order and amount is safe.",
+        "operationId" : "request",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PaymentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaymentReference"
+                }
+              }
+            },
+            "description" : "The order was requested with this amount before"
+          },
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaymentReference"
+                }
+              }
+            },
+            "description" : "Payment created and its process started"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request is invalid, or the host of the callback URL is not allowed"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The order was requested with another amount before"
+          },
+          "503" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Camunda did not accept the start of the process; nothing was stored, try again"
+          }
+        },
+        "summary" : "Request the payment of an order",
+        "tags" : [ "Payments" ]
+      }
+    },
+    "/api/v1/payments/{paymentId}" : {
+      "get" : {
+        "operationId" : "payment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "paymentId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaymentDetails"
+                }
+              }
+            },
+            "description" : "The payment"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "There is no payment with this ID"
+          }
+        },
+        "summary" : "Read a payment",
+        "tags" : [ "Payments" ]
+      }
+    }
+  }
+}
