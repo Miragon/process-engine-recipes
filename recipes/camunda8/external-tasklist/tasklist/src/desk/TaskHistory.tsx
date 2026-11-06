@@ -61,10 +61,8 @@ export function TaskHistory({ task }: { task: Task }) {
         <Icon of={History} size={14} />
         History
       </h2>
-      {history.isPending ? (
-        <p className="muted">Loading…</p>
-      ) : history.isError ? (
-        <p className="muted">{`Couldn't load the history. ${history.error.message}`}</p>
+      {history.data === undefined ? (
+        <p className="muted">{history.isError ? `Couldn't load the history. ${history.error.message}` : 'Loading…'}</p>
       ) : history.data.length === 0 ? (
         <p className="muted">No events yet.</p>
       ) : (

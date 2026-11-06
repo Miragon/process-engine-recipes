@@ -1,8 +1,8 @@
 // The working area of a task: the claim card or the form, and the action bar below it.
 import type { InitPayload, ResultPayload } from '@tasklist/form-protocol';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, CircleAlert, Inbox, Lock, RotateCw } from 'lucide-react';
-import { useState } from 'react';
+import { Check, CircleAlert, Inbox, LoaderCircle, Lock, RotateCw } from 'lucide-react';
+import { useEffect, useRef, useState, type Ref } from 'react';
 import { isProblem } from '../api/client';
 import { api, refreshTask, useTaskForm, useUsers } from '../api/queries';
 import type { Completion, FormData, HtmlFormView, JsonFormsView, Task } from '../api/types';
@@ -18,7 +18,13 @@ import { useToast } from '../ui/toast';
 import { ActionBar } from './ActionBar';
 import { useTaskCommands } from './useTaskCommands';
 
-type Commands = ReturnType<typeof useTaskCommands>;
+/** Claim and unclaim from the work area; afterwards the focus moves to what takes the place of the button. */
+interface Handover {
+  claim: () => void;
+  unclaim: () => void;
+  claiming: boolean;
+  unclaiming: boolean;
+}
 
 export function TaskWork({ task }: { task: Task }) {
   const { userId } = useSession();
@@ -28,12 +34,46 @@ export function TaskWork({ task }: { task: Task }) {
   const mine = task.assignee !== null && task.assignee !== undefined && task.assignee === userId;
   const showForm = !open || mine || preview;
   const form = useTaskForm(task, showForm);
+  const formShown = showForm && form.data !== undefined;
+
+  const work = useRef<HTMLDivElement>(null);
+  const card = useRef<HTMLDivElement>(null);
+  const focusNext = useRef<'form' | 'card' | null>(null);
+  useEffect(() => {
+    if (focusNext.current === 'form' && formShown) {
+      focusNext.current = null;
+      work.current?.focus();
+    } else if (focusNext.current === 'card' && !showForm) {
+      focusNext.current = null;
+      card.current?.focus();
+    }
+  }, [formShown, showForm]);
+
+  const handover: Handover = {
+    claim: () => {
+      commands.claim.mutate(undefined, {
+        onSuccess: () => {
+          focusNext.current = 'form';
+        },
+      });
+    },
+    unclaim: () => {
+      commands.unclaim.mutate(undefined, {
+        onSuccess: () => {
+          focusNext.current = 'card';
+        },
+      });
+    },
+    claiming: commands.claim.isPending,
+    unclaiming: commands.unclaim.isPending,
+  };
 
   if (!showForm) {
     return (
       <ClaimCard
+        ref={card}
         task={task}
-        commands={commands}
+        handover={handover}
         onPreview={() => {
           setPreview(true);
         }}
@@ -57,15 +97,26 @@ export function TaskWork({ task }: { task: Task }) {
     );
   }
   const readOnly = form.data.readOnly || !open || !mine;
-  return form.data.type === 'json-forms' ? (
-    <JsonTaskForm key={form.data.formRef} task={task} form={form.data} readOnly={readOnly} commands={commands} />
-  ) : (
-    <HtmlTaskForm task={task} form={form.data} readOnly={readOnly} commands={commands} />
+  return (
+    <div className="work" ref={work} tabIndex={-1} role="group" aria-label={`Form of ${task.name}`}>
+      {form.data.type === 'json-forms' ? (
+        <JsonTaskForm key={form.data.formRef} task={task} form={form.data} readOnly={readOnly} handover={handover} />
+      ) : (
+        <HtmlTaskForm task={task} form={form.data} readOnly={readOnly} handover={handover} />
+      )}
+    </div>
   );
 }
 
+interface ClaimCardProps {
+  task: Task;
+  handover: Handover;
+  onPreview: () => void;
+  ref: Ref<HTMLDivElement>;
+}
+
 /** Shown instead of the form while the task is not the user's: claim it, or look at the form first. */
-function ClaimCard({ task, commands, onPreview }: { task: Task; commands: Commands; onPreview: () => void }) {
+function ClaimCard({ task, handover, onPreview, ref }: ClaimCardProps) {
   const { data: users } = useUsers();
   const canClaim = task.actions.includes('CLAIM');
   const [title, help] = canClaim
@@ -74,7 +125,7 @@ function ClaimCard({ task, commands, onPreview }: { task: Task; commands: Comman
       ? [`${nameOf(task.assignee, users)} works on this task.`, 'Only the assignee can complete it.']
       : [`Only members of ${task.candidateGroups.join(', ') || 'its candidate groups'} can work on this task.`, 'You can still look at its form.'];
   return (
-    <div className="claim-card">
+    <div className="claim-card" ref={ref} tabIndex={-1}>
       <Icon of={Inbox} size={22} />
       <p>
         <strong>{title}</strong>
@@ -83,13 +134,7 @@ function ClaimCard({ task, commands, onPreview }: { task: Task; commands: Comman
       </p>
       <div className="claim-card__actions">
         {canClaim && (
-          <Button
-            variant="primary"
-            busy={commands.claim.isPending}
-            onClick={() => {
-              commands.claim.mutate();
-            }}
-          >
+          <Button variant="primary" busy={handover.claiming} onClick={handover.claim}>
             Claim task
           </Button>
         )}
@@ -122,29 +167,18 @@ function FormPending({ failure }: { failure: Error | null }) {
 }
 
 /** Unclaim for the assignee, Claim while looking at the form of a task the user may claim. */
-function TaskButtons({ task, commands }: { task: Task; commands: Commands }) {
+function TaskButtons({ task, handover }: { task: Task; handover: Handover }) {
   const { userId } = useSession();
   if (task.actions.includes('UNCLAIM')) {
     return (
-      <Button
-        busy={commands.unclaim.isPending}
-        onClick={() => {
-          commands.unclaim.mutate();
-        }}
-      >
+      <Button busy={handover.unclaiming} onClick={handover.unclaim}>
         Unclaim
       </Button>
     );
   }
   if (task.actions.includes('CLAIM')) {
     return (
-      <Button
-        variant="primary"
-        busy={commands.claim.isPending}
-        onClick={() => {
-          commands.claim.mutate();
-        }}
-      >
+      <Button variant="primary" busy={handover.claiming} onClick={handover.claim}>
         Claim task
       </Button>
     );
@@ -159,43 +193,57 @@ function readOnlyHint(task: Task) {
   return { text: 'Read-only: claim the task to change it', icon: Lock };
 }
 
+/**
+ * Completion and draft of the open task. Toasts and reloads hang on the mutations themselves, so they also happen
+ * when the task-changed event of the completion arrives first and the form is already gone.
+ */
 function useCompletion(task: Task) {
   const client = useQueryClient();
   const toast = useToast();
-  const complete = useMutation({ mutationFn: (data: FormData) => api.complete(task.userTaskKey, data) });
-  const draft = useMutation({ mutationFn: (data: FormData) => api.saveDraft(task.userTaskKey, data) });
-
-  const completed = (outcome: Completion) => {
-    refreshTask(client, task);
-    toast(
-      outcome === 'completed'
-        ? { tone: 'success', message: `${task.name} completed.` }
-        : { tone: 'info', message: 'Camunda accepted the completion. The task closes once its listeners finished.' },
-    );
-  };
   const refused = (error: Error) => {
     // A task that was completed or canceled meanwhile shows its new state.
     if (isProblem(error, 409) || isProblem(error, 403)) refreshTask(client, task);
   };
-  return { complete, draft, completed, refused, toast };
+  const complete = useMutation({
+    mutationFn: (data: FormData) => api.complete(task.userTaskKey, data),
+    onSuccess: (outcome: Completion) => {
+      refreshTask(client, task);
+      toast(
+        outcome === 'completed'
+          ? { tone: 'success', message: `${task.name} completed.` }
+          : { tone: 'info', message: 'Camunda accepted the completion. The task closes once its listeners finished.' },
+      );
+    },
+    onError: refused,
+  });
+  const draft = useMutation({
+    mutationFn: (data: FormData) => api.saveDraft(task.userTaskKey, data),
+    onSuccess: () => {
+      toast({ tone: 'success', message: 'Draft saved.' });
+    },
+    onError: refused,
+  });
+  return { complete, draft };
 }
 
-function JsonTaskForm({ task, form, readOnly, commands }: { task: Task; form: JsonFormsView; readOnly: boolean; commands: Commands }) {
+function JsonTaskForm({ task, form, readOnly, handover }: { task: Task; form: JsonFormsView; readOnly: boolean; handover: Handover }) {
   const state = useJsonFormState(form.data);
-  const { complete, draft, completed, refused, toast } = useCompletion(task);
+  const { complete, draft } = useCompletion(task);
   const [failed, setFailed] = useState<'complete' | 'draft'>('complete');
-  const editable = !readOnly && task.actions.includes('COMPLETE');
+  // After a 202 Camunda completes the task once its listeners finished; until then nothing may be sent again.
+  const [accepted, setAccepted] = useState(false);
+  const sending = complete.isPending || draft.isPending;
+  const editable = !readOnly && !accepted && task.actions.includes('COMPLETE');
 
   const submit = () => {
     complete.mutate(state.data, {
       onSuccess: (outcome) => {
         state.accept();
-        completed(outcome);
+        if (outcome === 'accepted') setAccepted(true);
       },
       onError: (error) => {
         setFailed('complete');
         if (isProblem(error)) state.reject(error);
-        refused(error);
       },
     });
   };
@@ -203,12 +251,10 @@ function JsonTaskForm({ task, form, readOnly, commands }: { task: Task; form: Js
     draft.mutate(state.data, {
       onSuccess: () => {
         state.accept();
-        toast({ tone: 'success', message: 'Draft saved.' });
       },
       onError: (error) => {
         setFailed('draft');
         if (isProblem(error)) state.reject(error);
-        refused(error);
       },
     });
   };
@@ -216,15 +262,17 @@ function JsonTaskForm({ task, form, readOnly, commands }: { task: Task; form: Js
   const hint =
     state.attention > 0
       ? { text: `${count(state.attention, 'field')} ${state.attention === 1 ? 'needs' : 'need'} attention`, icon: CircleAlert, tone: 'danger' as const }
-      : readOnly
-        ? readOnlyHint(task)
-        : undefined;
+      : accepted
+        ? { text: 'Camunda completes the task', icon: LoaderCircle }
+        : readOnly
+          ? readOnlyHint(task)
+          : undefined;
   const closed = task.state !== 'OPEN';
 
   return (
     <>
       <div className="card form-card">
-        <JsonForm form={form} data={state.data} readOnly={readOnly || complete.isPending} errors={state.errors} onChange={state.change} />
+        <JsonForm form={form} data={state.data} readOnly={readOnly || accepted || sending} errors={state.errors} onChange={state.change} />
       </div>
       <ActionBar
         notice={
@@ -234,7 +282,7 @@ function JsonTaskForm({ task, form, readOnly, commands }: { task: Task; form: Js
             </StatusBox>
           )
         }
-        start={<TaskButtons task={task} commands={commands} />}
+        start={<TaskButtons task={task} handover={handover} />}
         hint={hint}
         end={
           editable ? (
@@ -244,11 +292,11 @@ function JsonTaskForm({ task, form, readOnly, commands }: { task: Task; form: Js
                   Save draft
                 </Button>
               )}
-              <Button variant="primary" icon={Check} busy={complete.isPending} onClick={submit}>
+              <Button variant="primary" icon={Check} busy={complete.isPending} disabled={draft.isPending} onClick={submit}>
                 Complete task
               </Button>
             </>
-          ) : closed ? (
+          ) : closed || accepted ? (
             <Button variant="primary" icon={Check} disabled>
               Complete task
             </Button>
@@ -259,8 +307,8 @@ function JsonTaskForm({ task, form, readOnly, commands }: { task: Task; form: Js
   );
 }
 
-function HtmlTaskForm({ task, form, readOnly, commands }: { task: Task; form: HtmlFormView; readOnly: boolean; commands: Commands }) {
-  const { complete, draft, completed, refused, toast } = useCompletion(task);
+function HtmlTaskForm({ task, form, readOnly, handover }: { task: Task; form: HtmlFormView; readOnly: boolean; handover: Handover }) {
+  const { complete, draft } = useCompletion(task);
   const init: InitPayload = { formRef: form.formRef, mode: 'task', data: form.data, readOnly, draftable: form.draftable && !readOnly };
 
   const answer = async (send: () => Promise<string>): Promise<ResultPayload> => {
@@ -268,24 +316,18 @@ function HtmlTaskForm({ task, form, readOnly, commands }: { task: Task; form: Ht
       return { ok: true, message: await send() };
     } catch (error) {
       const problem = error instanceof Error ? error : new Error(String(error));
-      refused(problem);
       return { ok: false, message: problem.message, errors: isProblem(problem) ? problem.errors : [] };
     }
   };
   const onSubmit = (data: FormData) =>
-    answer(async () => {
-      const outcome = await complete.mutateAsync(data);
-      completed(outcome);
-      return outcome === 'completed' ? 'Task completed.' : 'Camunda accepted the completion.';
-    });
+    answer(async () => ((await complete.mutateAsync(data)) === 'completed' ? 'Task completed.' : 'Camunda accepted the completion.'));
   const onDraft = (data: FormData) =>
     answer(async () => {
       await draft.mutateAsync(data);
-      toast({ tone: 'success', message: 'Draft saved.' });
       return 'Draft saved.';
     });
 
-  const startButtons = <TaskButtons task={task} commands={commands} />;
+  const startButtons = <TaskButtons task={task} handover={handover} />;
   return (
     <>
       <FormFrame

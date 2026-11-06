@@ -24,6 +24,8 @@ import { Avatar, DomainChip, PriorityBadge } from './TaskMarks';
 import type { Navigate } from './useDeskLocation';
 
 const PAGE = 50;
+/** The task manager answers at most this many tasks at once. */
+const MAX_LIMIT = 200;
 
 const TITLES: Record<StateFilter, string> = { open: 'Open tasks', completed: 'Completed tasks', canceled: 'Canceled tasks' };
 
@@ -89,22 +91,39 @@ export function TaskList({ location, navigate }: { location: DeskLocation; navig
         />
       </div>
 
-      {page.isPending ? (
-        <ListSkeleton />
-      ) : page.isError ? (
+      {page.data !== undefined && page.isError && (
         <div className="list__state">
           <StatusBox
-            tone="danger"
-            title="Couldn't load the tasks"
+            tone="warning"
+            title="Couldn't refresh the tasks"
             actions={
               <Button size="sm" icon={RotateCw} onClick={() => void page.refetch()}>
                 Retry
               </Button>
             }
           >
-            {page.error.message}
+            {`${page.error.message} The list shows its last known state.`}
           </StatusBox>
         </div>
+      )}
+      {page.data === undefined ? (
+        page.isError ? (
+          <div className="list__state">
+            <StatusBox
+              tone="danger"
+              title="Couldn't load the tasks"
+              actions={
+                <Button size="sm" icon={RotateCw} onClick={() => void page.refetch()}>
+                  Retry
+                </Button>
+              }
+            >
+              {page.error.message}
+            </StatusBox>
+          </div>
+        ) : (
+          <ListSkeleton />
+        )
       ) : page.data.items.length === 0 ? (
         <div className="list__state">
           {isFiltered(filters) ? (
@@ -166,16 +185,20 @@ export function TaskList({ location, navigate }: { location: DeskLocation; navig
           <TaskRows tasks={page.data.items} selected={location.task} onOpen={open} />
           {page.data.items.length < page.data.total && (
             <div className="list__more">
-              <Button
-                size="sm"
-                variant="ghost"
-                busy={page.isFetching}
-                onClick={() => {
-                  setLimit(limit + PAGE);
-                }}
-              >
-                Show more
-              </Button>
+              {limit < MAX_LIMIT ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  busy={page.isFetching}
+                  onClick={() => {
+                    setLimit(Math.min(MAX_LIMIT, limit + PAGE));
+                  }}
+                >
+                  Show more
+                </Button>
+              ) : (
+                <p className="muted">{`The list shows the first ${String(page.data.items.length)} of ${String(page.data.total)} tasks. Narrow the filters to find the others.`}</p>
+              )}
             </div>
           )}
         </>

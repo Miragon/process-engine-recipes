@@ -31,6 +31,7 @@ interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
   label: string;
   icon: LucideIcon;
   size?: number;
+  ref?: Ref<HTMLButtonElement>;
 }
 
 /** A button that shows only an icon; its label is the accessible name and the tooltip. */

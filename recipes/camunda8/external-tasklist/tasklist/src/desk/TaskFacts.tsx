@@ -1,5 +1,5 @@
 import { Check, Pencil, X } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useUsers } from '../api/queries';
 import type { Task } from '../api/types';
 import { dateTime, dueDateTime, nameOf, PRIORITY_PRESETS, priorityLabel, priorityLevel, toLocalInput } from '../format';
@@ -44,6 +44,28 @@ export function TaskFacts({ task }: { task: Task }) {
   );
 }
 
+/**
+ * Edit mode of a fact. Leaving it, by saving, canceling or Escape, puts the focus back on the edit button, so the
+ * keyboard does not fall back to the start of the page.
+ */
+function useFactEditor() {
+  const [editing, setEditing] = useState(false);
+  const editButton = useRef<HTMLButtonElement>(null);
+  const returning = useRef(false);
+
+  useEffect(() => {
+    if (editing || !returning.current) return;
+    returning.current = false;
+    editButton.current?.focus();
+  }, [editing]);
+
+  const close = () => {
+    returning.current = true;
+    setEditing(false);
+  };
+  return { editing, open: () => { setEditing(true); }, close, editButton };
+}
+
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="fact">
@@ -55,7 +77,7 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 
 function PriorityFact({ task, editable }: { task: Task; editable: boolean }) {
   const { update } = useTaskCommands(task);
-  const [editing, setEditing] = useState(false);
+  const { editing, open, close, editButton } = useFactEditor();
   const [value, setValue] = useState(task.priority);
   const options = PRIORITY_PRESETS.some((preset) => preset.value === task.priority)
     ? PRIORITY_PRESETS
@@ -67,13 +89,14 @@ function PriorityFact({ task, editable }: { task: Task; editable: boolean }) {
         {priorityLevel(task.priority) === 'high' ? <PriorityBadge priority={task.priority} /> : priorityLabel(task.priority)}
         {editable && (
           <IconButton
+            ref={editButton}
             className="fact__edit"
             label="Change priority"
             icon={Pencil}
             size={14}
             onClick={() => {
               setValue(task.priority);
-              setEditing(true);
+              open();
             }}
           />
         )}
@@ -82,7 +105,7 @@ function PriorityFact({ task, editable }: { task: Task; editable: boolean }) {
   }
   const save = () => {
     if (value !== task.priority) update.mutate({ priority: value });
-    setEditing(false);
+    close();
   };
   return (
     <span className="fact__editor">
@@ -95,7 +118,7 @@ function PriorityFact({ task, editable }: { task: Task; editable: boolean }) {
           setValue(Number(event.target.value));
         }}
         onKeyDown={(event) => {
-          if (event.key === 'Escape') setEditing(false);
+          if (event.key === 'Escape') close();
           if (event.key === 'Enter') save();
         }}
       >
@@ -106,21 +129,14 @@ function PriorityFact({ task, editable }: { task: Task; editable: boolean }) {
         ))}
       </select>
       <IconButton label="Save priority" icon={Check} size={14} onClick={save} />
-      <IconButton
-        label="Cancel"
-        icon={X}
-        size={14}
-        onClick={() => {
-          setEditing(false);
-        }}
-      />
+      <IconButton label="Cancel" icon={X} size={14} onClick={close} />
     </span>
   );
 }
 
 function DueFact({ task, editable, now }: { task: Task; editable: boolean; now: Date }) {
   const { update } = useTaskCommands(task);
-  const [editing, setEditing] = useState(false);
+  const { editing, open, close, editButton } = useFactEditor();
   const [value, setValue] = useState('');
 
   if (!editing) {
@@ -129,13 +145,14 @@ function DueFact({ task, editable, now }: { task: Task; editable: boolean; now: 
         {task.dueDate ? dueDateTime(task.dueDate, now) : <span className="muted">Not set</span>}
         {editable && (
           <IconButton
+            ref={editButton}
             className="fact__edit"
             label="Change due date"
             icon={Pencil}
             size={14}
             onClick={() => {
               setValue(toLocalInput(task.dueDate));
-              setEditing(true);
+              open();
             }}
           />
         )}
@@ -147,7 +164,7 @@ function DueFact({ task, editable, now }: { task: Task; editable: boolean; now: 
   const save = () => {
     if (!valid) return;
     update.mutate({ dueDate: date.toISOString() });
-    setEditing(false);
+    close();
   };
   return (
     <span className="fact__editor">
@@ -161,19 +178,12 @@ function DueFact({ task, editable, now }: { task: Task; editable: boolean; now: 
           setValue(event.target.value);
         }}
         onKeyDown={(event) => {
-          if (event.key === 'Escape') setEditing(false);
+          if (event.key === 'Escape') close();
           if (event.key === 'Enter') save();
         }}
       />
       <IconButton label="Save due date" icon={Check} size={14} disabled={!valid} onClick={save} />
-      <IconButton
-        label="Cancel"
-        icon={X}
-        size={14}
-        onClick={() => {
-          setEditing(false);
-        }}
-      />
+      <IconButton label="Cancel" icon={X} size={14} onClick={close} />
     </span>
   );
 }

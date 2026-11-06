@@ -14,24 +14,27 @@ import { TaskWork } from './TaskWork';
 /** The open task: header, its state, facts, the form with the action bar, and its history. */
 export function TaskDetail({ taskKey }: { taskKey: string }) {
   const task = useTask(taskKey);
-  if (task.isPending) return <DetailSkeleton />;
-  if (task.isError) {
+  const retry = (
+    <Button size="sm" icon={RotateCw} onClick={() => void task.refetch()}>
+      Retry
+    </Button>
+  );
+  if (task.data === undefined) {
+    if (!task.isError) return <DetailSkeleton />;
     return (
-      <StatusBox
-        tone="danger"
-        title={isProblem(task.error, 404) ? "This task doesn't exist" : "Couldn't load the task"}
-        actions={
-          <Button size="sm" icon={RotateCw} onClick={() => void task.refetch()}>
-            Retry
-          </Button>
-        }
-      >
+      <StatusBox tone="danger" title={isProblem(task.error, 404) ? "This task doesn't exist" : "Couldn't load the task"} actions={retry}>
         {task.error.message}
       </StatusBox>
     );
   }
   return (
     <>
+      {/* A failed refresh keeps the task and what the user entered on screen. */}
+      {task.isError && (
+        <StatusBox tone="warning" title="Couldn't refresh the task" actions={retry}>
+          {`${task.error.message} It shows its last known state.`}
+        </StatusBox>
+      )}
       <DetailHeader task={task.data} />
       <TaskStateBox task={task.data} />
       <TaskFacts task={task.data} />

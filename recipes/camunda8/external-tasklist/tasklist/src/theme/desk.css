@@ -490,6 +490,14 @@
   letter-spacing: 0;
 }
 
+/* The form with its action bar; claiming moves the focus here, so the keyboard continues in the form. */
+.work {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border-radius: var(--cd-radius-md);
+}
+
 /* Docked to the bottom of the pane while the form is longer than the screen; the dock hides what scrolls behind. */
 .actionbar-dock {
   position: sticky;
