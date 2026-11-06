@@ -114,4 +114,4 @@ Limits:
 - The listener stays registered when the task manager stops. Delete it before you remove the task manager for good, or every user task waits.
 - No real authentication: demo users and static tokens.
 - Server-sent events reach the clients of one task manager instance only.
-- Tenants are not separated: tenant IDs are stored, and every user sees the tasks of all tenants.
+- Single tenant: the listener worker takes only jobs of the default tenant (`camunda.client.worker.defaults.tenant-ids`), so with multi-tenancy the user tasks of other tenants wait in `CREATING`.
