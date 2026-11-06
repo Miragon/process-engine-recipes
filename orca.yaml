@@ -1,0 +1,10 @@
+# Orca runs this setup from the root of every worktree it creates for this repository.
+# Each recipe that ships an executable orca-setup.sh checks its tools and fetches its dependencies.
+# A recipe that cannot be prepared only prints a warning; the worktree stays usable.
+scripts:
+  setup: |
+    for script in recipes/*/*/orca-setup.sh; do
+      [ -x "$script" ] || continue
+      echo "==> $script"
+      "$script" || echo "WARNING: $script did not finish; see its output above."
+    done
