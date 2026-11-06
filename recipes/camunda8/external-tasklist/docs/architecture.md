@@ -55,7 +55,7 @@ The task manager registers it at startup via `POST /v2/global-task-listeners`. I
 | `eventTypes` | `all` (`creating`, `assigning`, `updating`, `completing`, `canceling`) |
 | `afterNonGlobal` | `true`, so it runs after listeners the applications declare in their models |
 | `priority` | `0`, the lowest, so it also runs after other global listeners |
-| `retries` | `5` |
+| `retries` | `10`; the worker fails a job with a growing backoff (2 s, 4 s, ... up to 1 min) |
 
 The worker fetches only the variable `subject` and completes each job without variables.
 
@@ -100,6 +100,7 @@ Applications load their own entities by `businessId` and bind the submitted `dat
 | 409 | `TASK_NOT_ACTIVE` | The task was completed or canceled in the meantime |
 | 409 | `CONFLICT` | A domain rule forbids the change, for example a payment that was decided already |
 | 422 | `VALIDATION_FAILED` | The data breaks a rule of the form; `errors` names the fields |
+| 503 | `UNAVAILABLE` | Camunda is not reachable; nothing was changed, try again |
 
 **Completing a task** is the application's job. It validates, stores its domain change and completes the user task inside one transaction (`CamundaClient.completeUserTask` from the contract module):
 
@@ -108,7 +109,8 @@ Applications load their own entities by `businessId` and bind the submitted `dat
 | `204` | commits and answers `204` |
 | `404` (task gone) | rolls back and answers `409 TASK_NOT_ACTIVE` |
 | `409` denied by a completing listener | rolls back and answers `422` with the listener's reason |
-| `504` (listeners slower than 15 s) | commits and answers `202`; Camunda completes the task when the listeners finish |
+| `504` (listeners slower than 15 s), or no answer after the request went out | commits and answers `202`; Camunda completes the task when the listeners finish |
+| no connection to Camunda | rolls back and answers `503 UNAVAILABLE`; nothing happened |
 
 **Versioning.** A form reference carries its version (`check-order@1`). When the data a form reads or writes changes incompatibly, the application adds `check-order@2` and keeps serving `@1` until no running instance uses it anymore. The provider API itself is versioned in its path (`/tasklist/v1`).
 
@@ -186,7 +188,7 @@ The task manager keeps one row per user task in its own PostgreSQL database (`ta
 
 User task listeners block: Camunda keeps the task in `CREATING`, `ASSIGNING`, `UPDATING`, `COMPLETING` or `CANCELING` until the listener job is completed. An interrupting boundary event waits for the `canceling` job too, so the projection is updated before the process moves on. Two consequences:
 
-- **The task manager is on the critical path of every user task in the cluster.** While it is down, new tasks stay in `CREATING`, claims and completions time out after 15 s and canceled tasks stay in `CANCELING`. Nothing is lost: when it comes back, it handles the waiting jobs. After 5 failed attempts a job raises an incident that you resolve in Operate. Its health is `DOWN` until the listener is registered.
+- **The task manager is on the critical path of every user task in the cluster.** While it is down, new tasks stay in `CREATING`, claims and completions time out after 15 s and canceled tasks stay in `CANCELING`. Nothing is lost: when it comes back, it handles the waiting jobs. When storing an event fails, the worker fails the job with a growing backoff; after 10 attempts it raises an incident that you resolve in Operate. Its health is `DOWN` until the listener is registered. The handler therefore does nothing but the database write: names and form references come from a cache of the BPMN, an unknown definition is loaded in the background (its tasks are filled in a moment later), and server-sent events go out on their own threads.
 - **Commands return after the listener ran.** The REST commands for claim, update and completion wait for the listeners, the task manager's own one included. When the application answers the completion with `204`, the projection already says `COMPLETED`: the tasklist needs no polling. When the listeners take longer than Camunda's 15 s request timeout, the command answers `504`, but Camunda still applies it once the listeners finish. The task manager and the applications pass this on as `202`.
 
 **Limits of listeners**
@@ -195,7 +197,7 @@ User task listeners block: Camunda keeps the task in `CREATING`, `ASSIGNING`, `U
 - Listeners cannot deny `creating` or `canceling`, and a listener job is completed without variables.
 - The order of listeners is: global listeners, then the listeners of the model, then global listeners with `afterNonGlobal`. The task manager's listener is the last one, so it sees the final state of each transition, including corrections and denials of model listeners.
 
-**Reconciler.** Every 30 s (`taskmanager.reconciler.interval`) it checks open tasks that were quiet for 10 s (`lag`) against `GET /v2/user-tasks/{key}`, oldest check first. A task Camunda reports as completed or canceled is closed; a task Camunda no longer knows is closed as canceled after 2 minutes (`missing-grace`). It also inserts open tasks the listener never reported, for example tasks created before the task manager registered its listener, and fills in missing names and form references. It closes a task only if no listener event arrived in between, and never reopens one.
+**Reconciler.** Every 30 s (`taskmanager.reconciler.interval`) it checks open tasks that were quiet for 10 s (`lag`) against `GET /v2/user-tasks/{key}`, oldest check first. A task Camunda reports as completed or canceled is closed; a task Camunda's search does not know is closed as canceled only after 30 minutes (`missing-grace`), because the search can lag. A task that fails to check does not hold up the others. Once after startup it reads, page by page, the open tasks created before the task manager registered its listener and inserts those it does not have; later tasks always come through the listener. It also fills in missing names and form references. It closes a task only if no listener event arrived in between and never reopens one, but a listener event that arrives for a task it closed corrects the projection.
 
 ## Failure handling and consistency
 

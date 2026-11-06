@@ -128,16 +128,16 @@ Set `KEEP_STACK=1` to keep the stack running after the test.
 
 | Property | Default | Meaning |
 | --- | --- | --- |
-| `taskmanager.listener.id` / `.retries` / `.priority` | `taskmanager-projection` / `5` / `0` | The global user task listener; its job type is `taskmanager.projection` |
+| `taskmanager.listener.id` / `.retries` / `.priority` | `taskmanager-projection` / `10` / `0` | The global user task listener; its job type is `taskmanager.projection` |
 | `taskmanager.applications.<domain>.{label,base-url,token}` | order, payment | Applications the task manager forwards to |
 | `taskmanager.users.<id>.{name,groups}` | alice, bob, carol, demo | Demo users |
 | `taskmanager.provider-timeout` | `25s` | Read timeout for calls to the applications; above Camunda's 15 s |
-| `taskmanager.reconciler.{interval,lag,missing-grace,batch-size}` | `30s`, `10s`, `2m`, `100` | Reconciler |
+| `taskmanager.reconciler.{interval,lag,missing-grace,batch-size}` | `30s`, `10s`, `30m`, `100` | Reconciler |
 | `camunda.client.request-timeout` | `20s` | Above Camunda's 15 s, so a slow listener chain arrives as `504` |
 
 ## Kitchen notes
 
-- **Every user task in the cluster waits for the task manager.** The listener blocks each transition until its job is completed. While the task manager is down, tasks stay in `CREATING`, `ASSIGNING`, `COMPLETING` or `CANCELING`, and REST commands answer `504` after 15 s. Nothing is lost: the waiting jobs are handled when it is back. After 5 failed attempts a job raises an incident, which you resolve in Operate. Keep the listener handler to one database write; this one does nothing else.
+- **Every user task in the cluster waits for the task manager.** The listener blocks each transition until its job is completed. While the task manager is down, tasks stay in `CREATING`, `ASSIGNING`, `COMPLETING` or `CANCELING`, and REST commands answer `504` after 15 s. Nothing is lost: the waiting jobs are handled when it is back. A listener job that fails (the database restarts, say) waits 2 s, 4 s and so on up to a minute before the next attempt; after 10 attempts it raises an incident, which you resolve in Operate. Keep the listener handler to one database write: this one looks up names in a cache, loads unknown BPMN in the background and pushes server-sent events from its own threads.
 - **A process instance modification does not trigger `canceling`.** Camunda skips user task listeners when a modification terminates a task. The reconciler closes such tasks after about `interval` + `lag`, and a completion attempt finds them gone at once.
 - **Camunda's search is eventually consistent.** User task details, BPMN XML and even `GET /v2/global-task-listeners/{id}` lag about a second behind. The task manager reads the listener jobs instead, treats `409` on registration as "already registered", and only the reconciler reads the search.
 - **`@JobWorker(type = "${...}")` does not resolve placeholders.** The listener's job type is a constant, `taskmanager.projection`.
