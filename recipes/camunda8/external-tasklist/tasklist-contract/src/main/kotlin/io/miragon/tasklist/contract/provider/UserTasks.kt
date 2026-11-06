@@ -1,11 +1,14 @@
 package io.miragon.tasklist.contract.provider
 
 import io.camunda.client.CamundaClient
+import io.camunda.client.api.command.ClientException
 import io.camunda.client.api.command.ClientHttpException
 import io.camunda.client.api.command.ProblemException
+import io.miragon.tasklist.contract.CamundaUnavailable
 import io.miragon.tasklist.contract.CompletionOutcome
 import io.miragon.tasklist.contract.TaskNotActive
 import io.miragon.tasklist.contract.ValidationFailed
+import java.net.ConnectException
 
 private val DENIAL = Regex("""Reason to deny: '(.*)'""", RegexOption.DOT_MATCHES_ALL)
 
@@ -15,21 +18,37 @@ private val DENIAL = Regex("""Reason to deny: '(.*)'""", RegexOption.DOT_MATCHES
  * Call it inside the transaction that stores the domain change, so a rejected completion rolls it back:
  * - 404: the task is gone (completed, canceled by an event or by its process) → [TaskNotActive]
  * - 409 denied by a completing listener → [ValidationFailed] with the listener's reason
- * - 504: the listeners did not answer in time; Camunda still completes the task later → [CompletionOutcome.PENDING]
+ * - Camunda not reachable → [CamundaUnavailable]; nothing happened, so the change rolls back
+ * - 504, or no answer after the request went out: Camunda may still complete the task → [CompletionOutcome.PENDING]
  */
 fun CamundaClient.completeUserTask(userTaskKey: String, variables: Map<String, Any?> = emptyMap()): CompletionOutcome =
     try {
         newCompleteUserTaskCommand(userTaskKey.toLong()).variables(variables).send().join()
         CompletionOutcome.COMPLETED
-    } catch (e: ClientHttpException) {
-        when (e.code()) {
-            404 -> throw TaskNotActive()
-            409 -> {
-                val detail = (e as? ProblemException)?.details()?.detail.orEmpty()
-                val reason = DENIAL.find(detail)?.groupValues?.get(1)
-                throw if (reason != null) ValidationFailed(reason) else TaskNotActive()
-            }
-            504 -> CompletionOutcome.PENDING
-            else -> throw e
-        }
+    } catch (e: ClientException) {
+        completionOutcome(e)
     }
+
+/** What a failed user task command means for the tasklist; throws for the answers that are errors. */
+internal fun completionOutcome(e: ClientException): CompletionOutcome {
+    if (e !is ClientHttpException) {
+        if (e.causes().any { it is ConnectException }) throw CamundaUnavailable()
+        return CompletionOutcome.PENDING
+    }
+    return when (e.code()) {
+        404 -> throw TaskNotActive()
+        409 -> throw e.denialReason()?.let { ValidationFailed(it) } ?: TaskNotActive()
+        504 -> CompletionOutcome.PENDING
+        else -> throw e
+    }
+}
+
+/** The reason a user task listener gave when it denied a command, from Camunda's 409 answer. */
+fun ClientHttpException.denialReason(): String? =
+    DENIAL.find(problemDetail())?.groupValues?.get(1)
+
+/** The detail of Camunda's problem answer, or the plain message. */
+fun ClientHttpException.problemDetail(): String =
+    (this as? ProblemException)?.details()?.detail ?: message.orEmpty()
+
+private fun Throwable.causes(): Sequence<Throwable> = generateSequence(this) { it.cause }

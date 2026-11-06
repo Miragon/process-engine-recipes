@@ -34,3 +34,6 @@ class DraftNotSupported(formRef: String) :
 
 class BadTasklistRequest(message: String) :
     TasklistProblem(400, "BAD_REQUEST", message)
+
+class CamundaUnavailable(message: String = "Camunda is not reachable. Nothing was changed; try again in a moment.") :
+    TasklistProblem(503, "UNAVAILABLE", message)

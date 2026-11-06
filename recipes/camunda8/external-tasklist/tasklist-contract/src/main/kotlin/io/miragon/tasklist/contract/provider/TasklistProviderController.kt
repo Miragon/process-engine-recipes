@@ -14,7 +14,6 @@ import io.miragon.tasklist.contract.TaskSubmission
 import io.miragon.tasklist.contract.TasklistApi
 import io.miragon.tasklist.contract.ValidationFailed
 import org.springframework.core.io.Resource
-import org.springframework.http.CacheControl
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -70,13 +69,7 @@ class TasklistProviderController(
     fun frame(@PathVariable formRef: String): ResponseEntity<Resource> {
         val bundle = properties.frameBundle
         if (!isHtmlForm(formRef) || bundle == null || !bundle.exists()) throw FormNotFound(formRef)
-        return ResponseEntity.ok()
-            .header("Content-Security-Policy", TasklistApi.FRAME_CSP)
-            .header("X-Content-Type-Options", "nosniff")
-            .header("Referrer-Policy", "no-referrer")
-            .cacheControl(CacheControl.noCache())
-            .contentType(MediaType.TEXT_HTML)
-            .body(bundle)
+        return formFrame(bundle)
     }
 
     private fun handlerFor(userTaskKey: String, context: TaskContext): TaskFormHandler<*> {
