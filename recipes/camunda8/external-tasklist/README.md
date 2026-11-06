@@ -28,7 +28,7 @@ You need a JDK 25 and Docker or Podman with Compose and about 6 GB of memory for
 
 ![The tasklist calls only the task manager; the task manager sees every user task through a global listener and forwards forms and completions to the order and payment applications](images/overview.png)
 
-1. **The applications model plain Camunda user tasks.** Each task names its form with `zeebe:formDefinition externalReference="check-order@1"` (*Custom form key* in the Modeler) and its application with the task header `domain`. The applications never call the task manager. The [BPMN conventions](docs/architecture.md#1-bpmn-conventions-for-a-process-application) list everything.
+1. **The applications model plain Camunda user tasks.** Each task names its form with `zeebe:formDefinition externalReference="check-order@1"` (*Custom form key* in the Modeler) and its application with the task header `domain`. The applications never call the task manager. The [BPMN conventions](docs/architecture.md#contract-of-a-process-application) list everything.
 2. **One global user task listener reports every task.** At startup the task manager registers a listener for all user task events in the cluster (`POST /v2/global-task-listeners`). Camunda hands each `creating`, `assigning`, `updating`, `completing` and `canceling` event to the task manager's job worker and waits for it. The worker writes the task into a PostgreSQL projection that the tasklist filters on.
 3. **Claim, unclaim and update go through Camunda's REST API.** They return after the listener ran, so the projection is already up to date.
 4. **Forms come from the application that owns the task.** The task manager forwards the form request with a `TaskContext` it builds from its projection. The application answers with a JSON Forms schema and data, or with an HTML micro-frontend. The micro-frontend runs in a sandboxed iframe and speaks a small [postMessage protocol](tasklist-contract/src/main/typescript/PROTOCOL.md).
@@ -109,7 +109,7 @@ curl -s -H 'X-Demo-User: alice' 'localhost:8090/api/tasks?state=CANCELED'
 `./mvnw -B verify` (the `build` of `recipe.yaml`) runs:
 
 - the contract tests of the provider API: token, binding to the editable fields only, problem details, the frame's content security policy;
-- the projection tests on PostgreSQL: redeliveries and late listener jobs are ignored, closed tasks never reopen, the filters;
+- the projection tests on PostgreSQL: redeliveries and late listener jobs are ignored, tasks a listener closed never reopen, the filters;
 - one Camunda Process Test class per service against Camunda 8.10.9 in Testcontainers:
   - task manager: listener, claim, update, completion through the application, cancellation by a boundary event, modification plus reconciler;
   - order: approval, decline, cancellation on *Check order*, payment results, delivery;
@@ -137,7 +137,7 @@ Set `KEEP_STACK=1` to keep the stack running after the test, and `UPDATE_SCREENS
 
 **Join the tasklist with another process application:**
 
-1. Model the user tasks along the [BPMN conventions](docs/architecture.md#1-bpmn-conventions-for-a-process-application): `externalReference` with a versioned form reference, the task header `domain`, the `businessId` of the instance and an optional `subject` variable.
+1. Model the user tasks along the [BPMN conventions](docs/architecture.md#contract-of-a-process-application): `externalReference` with a versioned form reference, the task header `domain`, the `businessId` of the instance and an optional `subject` variable.
 2. Add `io.miragon.recipes:tasklist-contract`, put `@EnableTasklistProvider` on the application and write one `TaskFormHandler` per form version (and a `StartFormHandler` per start form). Set `tasklist.provider.token`; if it serves HTML forms, also set `tasklist.provider.frame-bundle`.
 3. Register it in the task manager: `taskmanager.applications.<domain>.label`, `.base-url` and `.token`.
 
@@ -165,7 +165,7 @@ Set `KEEP_STACK=1` to keep the stack running after the test, and `UPDATE_SCREENS
 - **JSON Forms' default validator fails under a strict content security policy.** Ajv compiles schemas into code with `new Function`, which `script-src 'self'` forbids, so every JSON form breaks. The tasklist gives JSON Forms a validator built on `@cfworker/json-schema`, which interprets schemas instead ([`schemaValidator.ts`](tasklist/src/forms/schemaValidator.ts)).
 - **A form frame that fails stays silent.** When an application cannot deliver its micro-frontend, the iframe shows the error but never sends `ready`. The tasklist notices only after 15 s and offers Retry.
 - **Each tab holds a connection for the events.** Over HTTP/1.1 a browser opens at most six connections per host, so many open tabs slow each other down. Serve the tasklist over HTTP/2 if people work with many tabs.
-- **Two systems, one action.** An application commits its database only if Camunda accepted the completion or the process start. If Camunda accepts but the answer is lost, Camunda went on without the domain change. Use an outbox if you cannot accept that.
+- **Two systems, one action.** An application commits a process start only if Camunda accepted it, and a completion also when Camunda's answer is late or lost (`202`). So a lost answer can leave a process running without its row, or a stored change on a task that stays open. Use an outbox if you cannot accept that.
 - **Demo only:** there is no authentication (`X-Demo-User`), the tokens between the services are static, and the stack keeps no data after `down -v`. Server-sent events only reach the clients of one task manager instance.
 - **Version exceptions.** Java 25 is the LTS (Dependabot offered 27). Flyway follows the Spring Boot BOM (12.4). Camunda minor and major upgrades and Elasticsearch majors are migrations, so Dependabot ignores them. The tasklist and the micro-frontend stay on TypeScript 6 until typescript-eslint supports 7. The Node version in `pom.xml` is not updated by Dependabot.
 
