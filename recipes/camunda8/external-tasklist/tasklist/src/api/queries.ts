@@ -131,17 +131,13 @@ export function useStartForm(ref: StartFormRef) {
   });
 }
 
-/**
- * Waits for the first task of a process instance the user just started. The task manager offers no filter by
- * process instance, so the newest open tasks, narrowed by the business ID when there is one, are searched for it.
- */
+/** Waits for the first task of a process instance the user just started. */
 export function useFirstTask(started: StartResult | null, waiting: boolean) {
   return useQuery({
     queryKey: keys.firstTask(started?.processInstanceKey ?? ''),
     queryFn: async ({ signal }) => {
-      const query = { q: started?.businessId ?? undefined, state: 'OPEN', sort: 'CREATED_AT', descending: true, limit: 50 } as const;
-      const page = await api.tasks(query, signal);
-      return page.items.find((task) => task.processInstanceKey === started?.processInstanceKey) ?? null;
+      const query = { processInstanceKey: started?.processInstanceKey, state: 'OPEN', sort: 'CREATED_AT', descending: false, limit: 1 } as const;
+      return (await api.tasks(query, signal)).items[0] ?? null;
     },
     enabled: started !== null && waiting,
     refetchInterval: (query) => (query.state.data ? false : 1000),
