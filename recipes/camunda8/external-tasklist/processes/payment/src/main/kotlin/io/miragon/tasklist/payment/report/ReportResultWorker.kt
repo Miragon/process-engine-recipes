@@ -14,6 +14,9 @@ import java.time.Duration
  * Reports the decided payment to the order application and answers the job as docs/architecture.md §5 asks:
  * complete on 2xx, an incident for a person on a refusal, a retry with exponential backoff on 5xx or no answer.
  * The worker sends the job commands itself, so an incident shows the order application's answer, not a stack trace.
+ *
+ * The result comes from the process variables, not from the payment row: the completion of "Check payment" commits
+ * the row only after Camunda accepted it, so this job may run before that commit is visible.
  */
 @Component
 class ReportResultWorker(
@@ -24,8 +27,15 @@ class ReportResultWorker(
     private val log = LoggerFactory.getLogger(javaClass)
 
     @JobWorker(type = "payment.report-result", autoComplete = [false])
-    fun report(client: JobClient, job: ActivatedJob, @Variable paymentId: String) {
-        val payment = checkNotNull(payments.find(paymentId)) { "There is no payment $paymentId." }
+    fun report(
+        client: JobClient,
+        job: ActivatedJob,
+        @Variable paymentId: String,
+        @Variable paymentStatus: String,
+        @Variable rejectionReason: String?,
+    ) {
+        val stored = checkNotNull(payments.find(paymentId)) { "There is no payment $paymentId." }
+        val payment = stored.copy(status = PaymentStatus.valueOf(paymentStatus), rejectionReason = rejectionReason)
         check(payment.status != PaymentStatus.OPEN) { "Payment $paymentId has no result yet." }
         when (val delivery = orderCallback.send(payment)) {
             Delivery.Accepted -> {
