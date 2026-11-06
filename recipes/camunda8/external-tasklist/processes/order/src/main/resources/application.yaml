@@ -1,0 +1,34 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: order-app
+  datasource:
+    url: jdbc:postgresql://localhost:5432/orders
+    username: orders
+    password: orders
+
+camunda:
+  client:
+    mode: self-managed
+    rest-address: http://localhost:8080
+    grpc-address: http://localhost:26500
+    # Longer than the 15 s Camunda waits for user task listeners, so a slow completion arrives as 504.
+    request-timeout: 20s
+    auth:
+      method: none
+
+tasklist:
+  provider:
+    token: order-demo-token
+    frame-bundle: classpath:/tasklist/forms/index.html
+
+order:
+  payments:
+    base-url: http://localhost:8082
+  callback-base-url: http://localhost:8081
+
+springdoc:
+  paths-to-match: /api/v1/**
+  default-produces-media-type: application/json

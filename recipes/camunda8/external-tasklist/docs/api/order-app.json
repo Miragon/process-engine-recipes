@@ -1,0 +1,430 @@
+{
+  "components" : {
+    "schemas" : {
+      "Cancellation" : {
+        "properties" : {
+          "reason" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "Customer" : {
+        "properties" : {
+          "address" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "address", "email", "name" ],
+        "type" : "object"
+      },
+      "FieldError" : {
+        "properties" : {
+          "field" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "field", "message" ],
+        "type" : "object"
+      },
+      "NewOrder" : {
+        "properties" : {
+          "customer" : {
+            "$ref" : "#/components/schemas/Customer"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NewOrderItem"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "customer", "items" ],
+        "type" : "object"
+      },
+      "NewOrderItem" : {
+        "properties" : {
+          "itemId" : {
+            "type" : "string"
+          },
+          "quantity" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "itemId", "quantity" ],
+        "type" : "object"
+      },
+      "OrderDetails" : {
+        "properties" : {
+          "cancelReason" : {
+            "type" : [ "string", "null" ]
+          },
+          "checkComment" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "currency" : {
+            "type" : "string"
+          },
+          "customer" : {
+            "$ref" : "#/components/schemas/Customer"
+          },
+          "deliveryNote" : {
+            "type" : [ "string", "null" ]
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/OrderItem"
+            },
+            "type" : "array"
+          },
+          "orderId" : {
+            "type" : "string"
+          },
+          "payment" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/OrderPayment"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "processInstanceKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "shippingDate" : {
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "enum" : [ "CHECKING", "CANCELED", "DECLINED", "AWAITING_PAYMENT", "PREPARING", "SHIPPED", "NOT_PAID" ],
+            "type" : "string"
+          },
+          "total" : {
+            "type" : "number"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "currency", "customer", "items", "orderId", "status", "total", "updatedAt" ],
+        "type" : "object"
+      },
+      "OrderItem" : {
+        "properties" : {
+          "itemId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "price" : {
+            "type" : "number"
+          },
+          "quantity" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "ready" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "itemId", "name", "price", "quantity", "ready" ],
+        "type" : "object"
+      },
+      "OrderPayment" : {
+        "properties" : {
+          "paymentId" : {
+            "type" : [ "string", "null" ]
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "enum" : [ "PAID", "REJECTED" ],
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "OrderPlaced" : {
+        "properties" : {
+          "orderId" : {
+            "type" : "string"
+          },
+          "processInstanceKey" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "orderId", "processInstanceKey" ],
+        "type" : "object"
+      },
+      "PaymentResult" : {
+        "properties" : {
+          "paymentId" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "enum" : [ "PAID", "REJECTED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "paymentId", "status" ],
+        "type" : "object"
+      },
+      "Problem" : {
+        "properties" : {
+          "code" : {
+            "description" : "ORDER_NOT_FOUND, CONFLICT, VALIDATION_FAILED, PROCESS_NOT_WAITING or BAD_REQUEST",
+            "type" : "string"
+          },
+          "detail" : {
+            "type" : [ "string", "null" ]
+          },
+          "errors" : {
+            "description" : "The fields that break a rule, only for VALIDATION_FAILED",
+            "items" : {
+              "$ref" : "#/components/schemas/FieldError"
+            },
+            "type" : [ "array", "null" ]
+          },
+          "instance" : {
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "code", "status", "title" ],
+        "type" : "object"
+      }
+    }
+  },
+  "info" : {
+    "description" : "Orders of the MiraVelo bike shop. The payment application reports payment results here.",
+    "title" : "Order application",
+    "version" : "v1"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/api/v1/orders" : {
+      "post" : {
+        "description" : "Does the same as the tasklist's start form \"New order\".",
+        "operationId" : "place",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NewOrder"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrderPlaced"
+                }
+              }
+            },
+            "description" : "The order is placed and its process started."
+          },
+          "422" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "The order breaks a rule; `errors` names the fields."
+          }
+        },
+        "summary" : "Place an order",
+        "tags" : [ "Orders" ]
+      }
+    },
+    "/api/v1/orders/{orderId}" : {
+      "get" : {
+        "operationId" : "get",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "orderId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrderDetails"
+                }
+              }
+            },
+            "description" : "The order."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "There is no such order."
+          }
+        },
+        "summary" : "Read an order",
+        "tags" : [ "Orders" ]
+      }
+    },
+    "/api/v1/orders/{orderId}/cancellation" : {
+      "post" : {
+        "description" : "A customer cancels the order. That works while sales checks it; canceling again is fine.",
+        "operationId" : "cancel",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "orderId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Cancellation"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "204" : {
+            "description" : "The order is canceled, now or before."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "There is no such order."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "The order can no longer be canceled."
+          }
+        },
+        "summary" : "Cancel an order",
+        "tags" : [ "Orders" ]
+      }
+    },
+    "/api/v1/orders/{orderId}/payment-result" : {
+      "post" : {
+        "description" : "Called by the payment application. Reporting the same result again is fine.",
+        "operationId" : "reportPaymentResult",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "orderId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PaymentResult"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "The result is applied, now or before."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "There is no such order."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "The result contradicts an earlier one."
+          },
+          "503" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "The order process does not wait for a result yet. Report it again after `Retry-After` seconds.",
+            "headers" : {
+              "Retry-After" : {
+                "schema" : {
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
+          }
+        },
+        "summary" : "Report the result of a payment",
+        "tags" : [ "Orders" ]
+      }
+    }
+  }
+}
