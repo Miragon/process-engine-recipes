@@ -478,7 +478,8 @@
   gap: 8px;
 }
 
-.nothing-open {
+/* Centered in the pane; as its last child it would otherwise keep the bottom margin of .detail > :last-child. */
+.detail > .nothing-open {
   max-width: 360px;
   margin: auto;
 }
