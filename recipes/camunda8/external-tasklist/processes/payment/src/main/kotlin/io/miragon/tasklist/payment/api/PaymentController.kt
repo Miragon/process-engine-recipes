@@ -27,7 +27,7 @@ import java.math.BigDecimal
 import java.net.URI
 import java.time.Instant
 
-/** The payments API for other services (docs/architecture.md §5). */
+/** The payments API for other services (docs/architecture.md, "Contract of a process application"). */
 @OpenAPIDefinition(
     info = Info(
         title = "Payment application",

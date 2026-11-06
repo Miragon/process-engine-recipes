@@ -25,4 +25,7 @@ TASKMANAGER_RECONCILER_INTERVAL=5s TASKMANAGER_RECONCILER_LAG=3s compose up -d -
 
 cd e2e
 npm ci --no-audit --no-fund
-npx playwright test
+# Only CI installs Chromium's system packages too, which needs root; see the README for Linux.
+npx playwright install ${CI:+--with-deps} chromium
+# api: the task manager and the applications; ui: the tasklist on :3000. UPDATE_SCREENSHOT=1 refreshes images/tasklist.png.
+npx playwright test --project=api --project=ui
