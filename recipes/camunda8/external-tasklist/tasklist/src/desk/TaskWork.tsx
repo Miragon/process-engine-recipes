@@ -16,6 +16,7 @@ import { Icon } from '../ui/Icon';
 import { StatusBox } from '../ui/StatusBox';
 import { useToast } from '../ui/toast';
 import { ActionBar } from './ActionBar';
+import { completionSent, completionSettled, useCompletionSent } from './completions';
 import { useTaskCommands } from './useTaskCommands';
 
 /** Claim and unclaim from the work area; afterwards the focus moves to what takes the place of the button. */
@@ -30,6 +31,7 @@ export function TaskWork({ task }: { task: Task }) {
   const { userId } = useSession();
   const [preview, setPreview] = useState(false);
   const commands = useTaskCommands(task);
+  const sent = useCompletionSent(task.userTaskKey);
   const open = task.state === 'OPEN';
   const mine = task.assignee !== null && task.assignee !== undefined && task.assignee === userId;
   const showForm = !open || mine || preview;
@@ -48,6 +50,10 @@ export function TaskWork({ task }: { task: Task }) {
       card.current?.focus();
     }
   }, [formShown, showForm]);
+
+  useEffect(() => {
+    if (!open) completionSettled(task.userTaskKey);
+  }, [open, task.userTaskKey]);
 
   const handover: Handover = {
     claim: () => {
@@ -96,7 +102,7 @@ export function TaskWork({ task }: { task: Task }) {
       </StatusBox>
     );
   }
-  const readOnly = form.data.readOnly || !open || !mine;
+  const readOnly = form.data.readOnly || !open || !mine || sent;
   return (
     <div className="work" ref={work} tabIndex={-1} role="group" aria-label={`Form of ${task.name}`}>
       {form.data.type === 'json-forms' ? (
@@ -187,6 +193,8 @@ function TaskButtons({ task, handover }: { task: Task; handover: Handover }) {
   return null;
 }
 
+const COMPLETING = { text: 'Camunda completes the task', icon: LoaderCircle };
+
 function readOnlyHint(task: Task) {
   if (task.state === 'CANCELED') return { text: 'Read-only: the task was canceled', icon: Lock };
   if (task.state === 'COMPLETED') return { text: 'Read-only: the task was completed', icon: Lock };
@@ -207,6 +215,8 @@ function useCompletion(task: Task) {
   const complete = useMutation({
     mutationFn: (data: FormData) => api.complete(task.userTaskKey, data),
     onSuccess: (outcome: Completion) => {
+      // Until the task has closed nothing may be sent again, after a 202 also while Camunda's listeners still run.
+      completionSent(task.userTaskKey);
       refreshTask(client, task);
       toast(
         outcome === 'completed'
@@ -230,16 +240,14 @@ function JsonTaskForm({ task, form, readOnly, handover }: { task: Task; form: Js
   const state = useJsonFormState(form.data);
   const { complete, draft } = useCompletion(task);
   const [failed, setFailed] = useState<'complete' | 'draft'>('complete');
-  // After a 202 Camunda completes the task once its listeners have finished; until then nothing may be sent again.
-  const [accepted, setAccepted] = useState(false);
+  const sent = useCompletionSent(task.userTaskKey);
   const sending = complete.isPending || draft.isPending;
-  const editable = !readOnly && !accepted && task.actions.includes('COMPLETE');
+  const editable = !readOnly && task.actions.includes('COMPLETE');
 
   const submit = () => {
     complete.mutate(state.data, {
-      onSuccess: (outcome) => {
+      onSuccess: () => {
         state.accept();
-        if (outcome === 'accepted') setAccepted(true);
       },
       onError: (error) => {
         setFailed('complete');
@@ -262,8 +270,8 @@ function JsonTaskForm({ task, form, readOnly, handover }: { task: Task; form: Js
   const hint =
     state.attention > 0
       ? { text: `${count(state.attention, 'field')} ${state.attention === 1 ? 'needs' : 'need'} attention`, icon: CircleAlert, tone: 'danger' as const }
-      : accepted
-        ? { text: 'Camunda completes the task', icon: LoaderCircle }
+      : sent
+        ? COMPLETING
         : readOnly
           ? readOnlyHint(task)
           : undefined;
@@ -272,7 +280,7 @@ function JsonTaskForm({ task, form, readOnly, handover }: { task: Task; form: Js
   return (
     <>
       <div className="card form-card">
-        <JsonForm form={form} data={state.data} readOnly={readOnly || accepted || sending} errors={state.errors} onChange={state.change} />
+        <JsonForm form={form} data={state.data} readOnly={readOnly || sending} errors={state.errors} onChange={state.change} />
       </div>
       <ActionBar
         notice={
@@ -296,7 +304,7 @@ function JsonTaskForm({ task, form, readOnly, handover }: { task: Task; form: Js
                 Complete task
               </Button>
             </>
-          ) : closed || accepted ? (
+          ) : closed || sent ? (
             <Button variant="primary" icon={Check} disabled>
               Complete task
             </Button>
@@ -309,6 +317,7 @@ function JsonTaskForm({ task, form, readOnly, handover }: { task: Task; form: Js
 
 function HtmlTaskForm({ task, form, readOnly, handover }: { task: Task; form: HtmlFormView; readOnly: boolean; handover: Handover }) {
   const { complete, draft } = useCompletion(task);
+  const sent = useCompletionSent(task.userTaskKey);
   const init: InitPayload = { formRef: form.formRef, mode: 'task', data: form.data, readOnly, draftable: form.draftable && !readOnly };
 
   const answer = async (send: () => Promise<string>): Promise<ResultPayload> => {
@@ -340,7 +349,7 @@ function HtmlTaskForm({ task, form, readOnly, handover }: { task: Task; form: Ht
         onSubmit={onSubmit}
         onDraft={onDraft}
       />
-      <ActionBar start={startButtons} hint={readOnly ? readOnlyHint(task) : { text: 'Complete the task in its form', icon: Check }} />
+      <ActionBar start={startButtons} hint={sent ? COMPLETING : readOnly ? readOnlyHint(task) : { text: 'Complete the task in its form', icon: Check }} />
     </>
   );
 }
