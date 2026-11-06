@@ -37,6 +37,6 @@ class TasklistProviderConfiguration {
     @Bean
     fun tasklistTokenFilter(properties: TasklistProviderProperties): FilterRegistrationBean<TasklistTokenFilter> =
         FilterRegistrationBean(TasklistTokenFilter(properties.token)).apply {
-            addUrlPatterns("${TasklistApi.BASE_PATH}/*")
+            addUrlPatterns("${TasklistApi.NAMESPACE}/*")
         }
 }

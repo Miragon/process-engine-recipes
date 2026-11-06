@@ -22,6 +22,10 @@ test('only candidates claim, only the assignee completes, and the browser cannot
   expect((await direct.json()).code).toBe('UNAUTHORIZED');
   const payments = await request.newContext({ baseURL: PAYMENTS, extraHTTPHeaders: { Authorization: 'Bearer guessed' } });
   expect((await payments.get('/tasklist/v1/start-forms')).status()).toBe(401);
+  // Also when the path is spelled so that only the decoded form names the provider API.
+  for (const path of ['/tasklist/v1;x/start-forms', '/%74asklist/v1/start-forms']) {
+    expect((await orders.get(path)).status(), path).toBe(401);
+  }
 });
 
 test('fields the form may not change are ignored', async () => {
