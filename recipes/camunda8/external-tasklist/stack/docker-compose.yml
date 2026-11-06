@@ -9,8 +9,8 @@ x-service: &service
     postgres: { condition: service_healthy }
 
 x-camunda-client: &camunda-client
-  CAMUNDA_CLIENT_REST_ADDRESS: http://camunda:8080
-  CAMUNDA_CLIENT_GRPC_ADDRESS: http://camunda:26500
+  CAMUNDA_CLIENT_RESTADDRESS: http://camunda:8080
+  CAMUNDA_CLIENT_GRPCADDRESS: http://camunda:26500
 
 services:
 
@@ -71,10 +71,12 @@ services:
     environment:
       <<: *camunda-client
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/taskmanager
-      TASKMANAGER_APPLICATIONS_ORDER_BASE_URL: http://order-app:8081
+      TASKMANAGER_APPLICATIONS_ORDER_BASEURL: http://order-app:8081
       TASKMANAGER_APPLICATIONS_ORDER_TOKEN: order-demo-token
-      TASKMANAGER_APPLICATIONS_PAYMENT_BASE_URL: http://payment-app:8082
+      TASKMANAGER_APPLICATIONS_PAYMENT_BASEURL: http://payment-app:8082
       TASKMANAGER_APPLICATIONS_PAYMENT_TOKEN: payment-demo-token
+      TASKMANAGER_RECONCILER_INTERVAL: ${TASKMANAGER_RECONCILER_INTERVAL:-30s}
+      TASKMANAGER_RECONCILER_LAG: ${TASKMANAGER_RECONCILER_LAG:-10s}
     healthcheck:
       # Healthy only once the global user task listener is registered.
       test: ["CMD", "curl", "-fs", "http://localhost:8090/actuator/health"]
@@ -110,7 +112,7 @@ services:
       <<: *camunda-client
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payments
       TASKLIST_PROVIDER_TOKEN: payment-demo-token
-      PAYMENT_CALLBACK_ALLOWED_HOSTS: order-app,localhost
+      PAYMENT_CALLBACK_ALLOWEDHOSTS: order-app,localhost
     healthcheck:
       test: ["CMD", "curl", "-fs", "http://localhost:8082/actuator/health"]
       interval: 5s
