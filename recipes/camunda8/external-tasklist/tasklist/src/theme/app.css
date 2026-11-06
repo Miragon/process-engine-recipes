@@ -15,10 +15,10 @@
   --focus: var(--cd-ui-fokus);
   --accent: var(--cd-ui-interaktion);
   --link: var(--cd-ui-link);
-  /* Domains get palette colors in the order of the task manager's registry, as in the mockups. */
+  /* Domains get palette colors in the order of the task manager's registry, which it sorts by label. */
   --domain-1: var(--cd-blau);
   --domain-2: var(--cd-gruen);
-  --domain-3: var(--cd-warning);
+  --domain-3: var(--cd-schwarz);
   --domain-other: var(--cd-ui-kontur);
   --font: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, monospace;
@@ -285,15 +285,14 @@ textarea {
   background: var(--domain-1);
 }
 
-/* Green and amber are too light on white for a small mark; a darker ring of the same color carries them. */
+/* Green is too light on white for a small mark; a hairline in the contour color carries it. */
 .dot--2 {
   background: var(--domain-2);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--domain-2) 75%, var(--cd-schwarz));
+  box-shadow: 0 0 0 1px var(--outline);
 }
 
 .dot--3 {
   background: var(--domain-3);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--domain-3) 75%, var(--cd-schwarz));
 }
 
 .avatar {
