@@ -1,0 +1,119 @@
+name: camunda8-external-tasklist
+
+x-service: &service
+  image: eclipse-temurin:25.0.5_8-jre
+  command: ["java", "-Xmx384m", "-jar", "/app.jar"]
+  restart: on-failure
+  depends_on:
+    camunda: { condition: service_healthy }
+    postgres: { condition: service_healthy }
+
+x-camunda-client: &camunda-client
+  CAMUNDA_CLIENT_REST_ADDRESS: http://camunda:8080
+  CAMUNDA_CLIENT_GRPC_ADDRESS: http://camunda:26500
+
+services:
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.6
+    ports: ["9200:9200"]
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      cluster.routing.allocation.disk.threshold_enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS 'http://localhost:9200/_cat/health?h=status' | grep -Eq 'green|yellow'"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 30s
+
+  camunda:
+    image: camunda/camunda:8.10.9
+    ports: ["8080:8080", "26500:26500", "9600:9600"]
+    environment:
+      JAVA_TOOL_OPTIONS: -Xms512m -Xmx1g
+    volumes:
+      - ./camunda/application.yaml:/usr/local/camunda/config/application.yaml:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          bash -c 'exec 3<>/dev/tcp/127.0.0.1/9600 &&
+          printf "GET /actuator/health/status HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 &&
+          head -n 1 <&3 | grep -q " 200"'
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+    depends_on:
+      elasticsearch: { condition: service_healthy }
+
+  postgres:
+    image: postgres:18.6
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  taskmanager:
+    <<: *service
+    ports: ["8090:8090"]
+    volumes:
+      - ../taskmanager/target/taskmanager.jar:/app.jar:ro
+    environment:
+      <<: *camunda-client
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/taskmanager
+      TASKMANAGER_APPLICATIONS_ORDER_BASE_URL: http://order-app:8081
+      TASKMANAGER_APPLICATIONS_ORDER_TOKEN: order-demo-token
+      TASKMANAGER_APPLICATIONS_PAYMENT_BASE_URL: http://payment-app:8082
+      TASKMANAGER_APPLICATIONS_PAYMENT_TOKEN: payment-demo-token
+    healthcheck:
+      # Healthy only once the global user task listener is registered.
+      test: ["CMD", "curl", "-fs", "http://localhost:8090/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 20s
+
+  order-app:
+    <<: *service
+    ports: ["8081:8081"]
+    volumes:
+      - ../processes/order/target/order-app.jar:/app.jar:ro
+    environment:
+      <<: *camunda-client
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/orders
+      TASKLIST_PROVIDER_TOKEN: order-demo-token
+      ORDER_PAYMENTS_BASE_URL: http://payment-app:8082
+      ORDER_CALLBACK_BASE_URL: http://order-app:8081
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8081/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 20s
+
+  payment-app:
+    <<: *service
+    ports: ["8082:8082"]
+    volumes:
+      - ../processes/payment/target/payment-app.jar:/app.jar:ro
+    environment:
+      <<: *camunda-client
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payments
+      TASKLIST_PROVIDER_TOKEN: payment-demo-token
+      PAYMENT_CALLBACK_ALLOWED_HOSTS: order-app,localhost
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8082/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 20s
