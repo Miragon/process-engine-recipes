@@ -1,0 +1,38 @@
+/* Direction B: Ledger. Dense table with filter chips; the task opens in a drawer. */
+.b-header { display: flex; align-items: center; gap: 32px; height: 60px; padding: 0 24px; background: var(--cd-ui-flaeche); border-bottom: 1px solid var(--cd-ui-linie); }
+.b-header .search { width: 260px; }
+.tabs { display: flex; gap: 4px; align-self: stretch; }
+.tab { display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; font-weight: 550; color: var(--cd-ui-text-leise); position: relative; }
+.tab.is-active { color: var(--cd-ui-text); }
+.tab.is-active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--cd-ui-interaktion); }
+.tab .count { background: var(--cd-ui-grund); color: var(--cd-ui-text-leise); }
+.tab.is-active .count { background: var(--cd-ui-hover); color: var(--cd-blau-link); }
+.b-main { flex: 1; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.filters { display: flex; align-items: center; gap: 8px; }
+.filter-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; font: inherit; font-size: 13px; font-weight: 550;
+  color: var(--cd-ui-text); background: var(--cd-ui-flaeche); border: 1px solid var(--cd-ui-linie); border-radius: var(--cd-radius-pill); }
+.filter-chip.is-set { border-color: var(--cd-ui-interaktion); background: var(--cd-ui-hover); }
+.table-card { background: var(--cd-ui-flaeche); border: 1px solid var(--cd-ui-linie); border-radius: var(--cd-radius-md); overflow: hidden; }
+.ledger { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ledger th { text-align: left; font-size: 12px; font-weight: 600; color: var(--cd-ui-text-leise); padding: 12px 14px; background: var(--cd-ui-grund);
+  border-bottom: 1px solid var(--cd-ui-linie); white-space: nowrap; }
+.ledger th .i { margin-left: 4px; }
+.ledger td { padding: 0 14px; height: 52px; border-bottom: 1px solid var(--cd-ui-linie); white-space: nowrap; }
+.ledger td:nth-child(2) { max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
+.ledger td .avatar { width: 22px; height: 22px; font-size: 10px; margin-right: 4px; vertical-align: middle; }
+.ledger tr.is-hover td { background: var(--cd-ui-hover); }
+.ledger .num { text-align: right; }
+.table-foot { display: flex; align-items: center; gap: 8px; padding: 10px 14px; font-size: 13px; }
+.backdrop { position: fixed; inset: 0; background: var(--cd-ui-backdrop); backdrop-filter: blur(3px) grayscale(1); }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 660px; background: var(--cd-ui-flaeche-hoch); border-left: 1px solid var(--cd-ui-linie);
+  box-shadow: var(--cd-shadow-3); display: flex; flex-direction: column; }
+.drawer-head { display: flex; justify-content: space-between; gap: 16px; padding: 24px 24px 16px; }
+.drawer-head h2 { font-size: 22px; font-weight: 700; margin-bottom: 2px; }
+.drawer-head-side { display: flex; gap: 8px; align-items: flex-start; }
+.drawer-tabs { display: flex; gap: 20px; padding: 0 24px; border-bottom: 1px solid var(--cd-ui-linie); }
+.drawer-tabs a { display: inline-flex; gap: 6px; align-items: center; padding: 10px 0; font-weight: 550; color: var(--cd-ui-text-leise); position: relative; }
+.drawer-tabs a.is-active { color: var(--cd-ui-text); }
+.drawer-tabs a.is-active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--cd-ui-interaktion); border-radius: 2px; }
+.drawer-body { flex: 1; overflow: hidden; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+.drawer-body > .facts { padding-bottom: 4px; }
+.drawer-foot { display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-top: 1px solid var(--cd-ui-linie); background: var(--cd-ui-flaeche-hoch); }
