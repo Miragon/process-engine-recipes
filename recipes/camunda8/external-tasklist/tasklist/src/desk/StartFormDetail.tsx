@@ -32,7 +32,7 @@ export function StartFormDetail({ start, onClose, onOpenTask }: StartFormDetailP
   const toast = useToast();
   const [placed, setPlaced] = useState<StartResult | null>(null);
   const [gaveUp, setGaveUp] = useState(false);
-  const firstTask = useFirstTask(placed?.businessId ?? null, placed !== null && !gaveUp);
+  const firstTask = useFirstTask(placed, placed !== null && !gaveUp);
 
   const submission = useMutation({ mutationFn: (data: FormData) => api.submitStartForm(start.domain, start.id, data) });
 
@@ -74,11 +74,9 @@ export function StartFormDetail({ start, onClose, onOpenTask }: StartFormDetailP
 
       {placed && (
         <StatusBox tone={gaveUp ? 'info' : 'success'} title={placed.businessId ? `${placed.businessId} placed` : 'Process started'}>
-          {!placed.businessId
-            ? 'Its tasks appear in the list as soon as the process creates them.'
-            : gaveUp
-              ? 'Its first task has not shown up yet. It appears in the list as soon as the process creates it.'
-              : 'Its first task opens here as soon as the process creates it.'}
+          {gaveUp
+            ? 'Its first task has not shown up yet. It appears in the list as soon as the process creates it.'
+            : 'Its first task opens here as soon as the process creates it.'}
         </StatusBox>
       )}
 

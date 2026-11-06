@@ -67,12 +67,23 @@ type Query = Record<string, string | number | boolean | null | undefined>;
 interface RequestOptions {
   query?: Query;
   body?: unknown;
+  /** Aborts the request on the wire, for example when TanStack Query cancels a query that is loaded again. */
+  signal?: AbortSignal;
+}
+
+/**
+ * What claim, unclaim and update answer: the task, and whether Camunda confirmed the change. On 202 its listeners
+ * are still running, the task is still the one before the change, and a `task-changed` event follows.
+ */
+export interface Command {
+  task: Task;
+  confirmed: boolean;
 }
 
 export type ApiClient = ReturnType<typeof createApiClient>;
 
 export function createApiClient({ currentUser, fetch: send = (input, init) => fetch(input, init) }: ApiClientOptions) {
-  async function request(method: string, path: string, { query, body }: RequestOptions = {}): Promise<Response> {
+  async function request(method: string, path: string, { query, body, signal }: RequestOptions = {}): Promise<Response> {
     const headers = new Headers({ Accept: 'application/json' });
     const user = currentUser();
     if (user !== null) headers.set(USER_HEADER, user);
@@ -84,8 +95,10 @@ export function createApiClient({ currentUser, fetch: send = (input, init) => fe
         method,
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
+        signal,
       });
-    } catch {
+    } catch (error) {
+      if (signal?.aborted) throw error;
       throw new ApiProblem({
         status: 0,
         code: 'NETWORK',
@@ -101,6 +114,11 @@ export function createApiClient({ currentUser, fetch: send = (input, init) => fe
     return (await response.json()) as T;
   }
 
+  async function command(method: string, path: string, options?: RequestOptions): Promise<Command> {
+    const response = await request(method, path, options);
+    return { task: (await response.json()) as Task, confirmed: response.status !== 202 };
+  }
+
   const task = (key: string) => `/api/tasks/${segment(key)}`;
   const startForm = (domain: string, id: string) => `/api/start-forms/${segment(domain)}/${segment(id)}`;
 
@@ -109,15 +127,15 @@ export function createApiClient({ currentUser, fetch: send = (input, init) => fe
     applications: () => json<Application[]>('GET', '/api/applications'),
     startForms: () => json<StartFormEntry[]>('GET', '/api/start-forms'),
 
-    tasks: (query: TaskQuery) => json<TaskPage>('GET', '/api/tasks', { query }),
-    facets: (state: StateQuery) => json<Facets>('GET', '/api/tasks/facets', { query: { state } }),
-    task: (key: string) => json<Task>('GET', task(key)),
-    history: (key: string) => json<HistoryEntry[]>('GET', `${task(key)}/history`),
-    form: (key: string) => json<FormView>('GET', `${task(key)}/form`),
+    tasks: (query: TaskQuery, signal?: AbortSignal) => json<TaskPage>('GET', '/api/tasks', { query, signal }),
+    facets: (state: StateQuery, signal?: AbortSignal) => json<Facets>('GET', '/api/tasks/facets', { query: { state }, signal }),
+    task: (key: string, signal?: AbortSignal) => json<Task>('GET', task(key), { signal }),
+    history: (key: string, signal?: AbortSignal) => json<HistoryEntry[]>('GET', `${task(key)}/history`, { signal }),
+    form: (key: string, signal?: AbortSignal) => json<FormView>('GET', `${task(key)}/form`, { signal }),
 
-    claim: (key: string) => json<Task>('POST', `${task(key)}/assignment`, { body: {} }),
-    unclaim: (key: string) => json<Task>('DELETE', `${task(key)}/assignment`),
-    update: (key: string, update: TaskUpdate) => json<Task>('PATCH', task(key), { body: update }),
+    claim: (key: string) => command('POST', `${task(key)}/assignment`, { body: {} }),
+    unclaim: (key: string) => command('DELETE', `${task(key)}/assignment`),
+    update: (key: string, update: TaskUpdate) => command('PATCH', task(key), { body: update }),
     saveDraft: async (key: string, data: FormData): Promise<void> => {
       await request('POST', `${task(key)}/draft`, { body: { data } });
     },

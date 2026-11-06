@@ -47,6 +47,26 @@ describe('the task manager client', () => {
     expect(request().url).toBe('/api/tasks?state=OPEN&assignment=MINE&sort=PRIORITY&descending=true');
   });
 
+  test('tells a confirmed claim from one whose listeners still run', async () => {
+    const task = { userTaskKey: '42', assignee: 'bob' };
+    const { api } = clientAs('bob', respond(200, task), respond(202, { ...task, assignee: null }));
+
+    await expect(api.claim('42')).resolves.toEqual({ task, confirmed: true });
+    await expect(api.claim('42')).resolves.toMatchObject({ confirmed: false });
+  });
+
+  test('aborts a request on the wire when its query is canceled', async () => {
+    const controller = new AbortController();
+    const { api, fetch } = clientAs('bob');
+    fetch.mockImplementationOnce((_url, init) => {
+      controller.abort();
+      return Promise.reject(init?.signal?.reason as Error);
+    });
+
+    await expect(api.task('42', controller.signal)).rejects.not.toBeInstanceOf(ApiProblem);
+    expect(fetch.mock.calls[0]?.[1]?.signal).toBe(controller.signal);
+  });
+
   test('wraps submitted form data and tells completed from accepted', async () => {
     const { api, request } = clientAs('bob', respond(204), respond(202));
 
