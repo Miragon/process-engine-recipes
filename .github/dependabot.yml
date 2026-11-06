@@ -71,13 +71,17 @@ updates:
       interval: 'monthly'
     labels:
       - 'dependencies'
-      - 'recipe:zeebe-external-tasklist'
+      - 'recipe:camunda8-external-tasklist'
     rebase-strategy: 'auto'
     commit-message:
       prefix: 'chore'
       include: 'scope'
     cooldown:
       default-days: 7
+    ignore:
+      # A Camunda minor or major upgrade is a migration of the recipe, not a dependency bump.
+      - dependency-name: 'io.camunda:*'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
     groups:
       tasklist-maven:
         applies-to: version-updates
@@ -87,33 +91,37 @@ updates:
         patterns: ['*']
 
   - package-ecosystem: 'npm'
-    directory: '/recipes/camunda8/external-tasklist/apps/react-forms'
+    directory: '/recipes/camunda8/external-tasklist/processes/order/frontend'
     schedule:
       interval: 'monthly'
     labels:
       - 'dependencies'
-      - 'recipe:zeebe-external-tasklist'
+      - 'recipe:camunda8-external-tasklist'
     rebase-strategy: 'auto'
     commit-message:
       prefix: 'chore'
       include: 'scope'
     cooldown:
       default-days: 7
+    ignore:
+      # typescript-eslint has to support a TypeScript major first.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
     groups:
-      tasklist-react-forms-npm:
+      tasklist-order-forms-npm:
         applies-to: version-updates
         patterns: ['*']
-      tasklist-react-forms-npm-security:
+      tasklist-order-forms-npm-security:
         applies-to: security-updates
         patterns: ['*']
 
   - package-ecosystem: 'npm'
-    directory: '/recipes/camunda8/external-tasklist/apps/tasklist'
+    directory: '/recipes/camunda8/external-tasklist/e2e'
     schedule:
       interval: 'monthly'
     labels:
       - 'dependencies'
-      - 'recipe:zeebe-external-tasklist'
+      - 'recipe:camunda8-external-tasklist'
     rebase-strategy: 'auto'
     commit-message:
       prefix: 'chore'
@@ -121,31 +129,10 @@ updates:
     cooldown:
       default-days: 7
     groups:
-      tasklist-app-npm:
+      tasklist-e2e-npm:
         applies-to: version-updates
         patterns: ['*']
-      tasklist-app-npm-security:
-        applies-to: security-updates
-        patterns: ['*']
-
-  - package-ecosystem: 'docker'
-    directory: '/recipes/camunda8/external-tasklist/apps/tasklist'
-    schedule:
-      interval: 'monthly'
-    labels:
-      - 'dependencies'
-      - 'recipe:zeebe-external-tasklist'
-    rebase-strategy: 'auto'
-    commit-message:
-      prefix: 'chore'
-      include: 'scope'
-    cooldown:
-      default-days: 7
-    groups:
-      tasklist-app-docker:
-        applies-to: version-updates
-        patterns: ['*']
-      tasklist-app-docker-security:
+      tasklist-e2e-npm-security:
         applies-to: security-updates
         patterns: ['*']
 
@@ -155,39 +142,25 @@ updates:
       interval: 'monthly'
     labels:
       - 'dependencies'
-      - 'recipe:zeebe-external-tasklist'
+      - 'recipe:camunda8-external-tasklist'
     rebase-strategy: 'auto'
     commit-message:
       prefix: 'chore'
       include: 'scope'
     cooldown:
       default-days: 7
+    ignore:
+      # A Camunda minor or major upgrade is a migration of the recipe, not a dependency bump.
+      - dependency-name: 'camunda/camunda'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      # Camunda supports Elasticsearch 8.19+ and 9.4+; a new major needs Camunda's support first.
+      - dependency-name: '*elasticsearch'
+        update-types: ['version-update:semver-major']
     groups:
       tasklist-stack-docker-compose:
         applies-to: version-updates
         patterns: ['*']
       tasklist-stack-docker-compose-security:
-        applies-to: security-updates
-        patterns: ['*']
-
-  - package-ecosystem: 'docker'
-    directory: '/recipes/camunda8/external-tasklist/stack/docker'
-    schedule:
-      interval: 'monthly'
-    labels:
-      - 'dependencies'
-      - 'recipe:zeebe-external-tasklist'
-    rebase-strategy: 'auto'
-    commit-message:
-      prefix: 'chore'
-      include: 'scope'
-    cooldown:
-      default-days: 7
-    groups:
-      tasklist-stack-image-docker:
-        applies-to: version-updates
-        patterns: ['*']
-      tasklist-stack-image-docker-security:
         applies-to: security-updates
         patterns: ['*']
 
