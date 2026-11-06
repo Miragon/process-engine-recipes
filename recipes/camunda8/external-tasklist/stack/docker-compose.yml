@@ -79,7 +79,12 @@ services:
       TASKMANAGER_RECONCILER_LAG: ${TASKMANAGER_RECONCILER_LAG:-10s}
     healthcheck:
       # Healthy only once the global user task listener is registered.
-      test: ["CMD", "curl", "-fs", "http://localhost:8090/actuator/health"]
+      test:
+        - CMD-SHELL
+        - >-
+          bash -c 'exec 3<>/dev/tcp/127.0.0.1/8090 &&
+          printf "GET /actuator/health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 &&
+          head -n 1 <&3 | grep -q " 200"'
       interval: 5s
       timeout: 5s
       retries: 40
@@ -94,10 +99,15 @@ services:
       <<: *camunda-client
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/orders
       TASKLIST_PROVIDER_TOKEN: order-demo-token
-      ORDER_PAYMENTS_BASE_URL: http://payment-app:8082
-      ORDER_CALLBACK_BASE_URL: http://order-app:8081
+      ORDER_PAYMENTS_BASEURL: http://payment-app:8082
+      ORDER_CALLBACKBASEURL: http://order-app:8081
     healthcheck:
-      test: ["CMD", "curl", "-fs", "http://localhost:8081/actuator/health"]
+      test:
+        - CMD-SHELL
+        - >-
+          bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081 &&
+          printf "GET /actuator/health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 &&
+          head -n 1 <&3 | grep -q " 200"'
       interval: 5s
       timeout: 5s
       retries: 40
@@ -114,7 +124,12 @@ services:
       TASKLIST_PROVIDER_TOKEN: payment-demo-token
       PAYMENT_CALLBACK_ALLOWEDHOSTS: order-app,localhost
     healthcheck:
-      test: ["CMD", "curl", "-fs", "http://localhost:8082/actuator/health"]
+      test:
+        - CMD-SHELL
+        - >-
+          bash -c 'exec 3<>/dev/tcp/127.0.0.1/8082 &&
+          printf "GET /actuator/health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 &&
+          head -n 1 <&3 | grep -q " 200"'
       interval: 5s
       timeout: 5s
       retries: 40
