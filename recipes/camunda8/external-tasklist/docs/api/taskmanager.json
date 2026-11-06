@@ -348,21 +348,6 @@
           }
         },
         "type" : "object"
-      },
-      "UserContext" : {
-        "properties" : {
-          "groups" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          },
-          "id" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "groups", "id" ],
-        "type" : "object"
       }
     }
   },
@@ -449,11 +434,12 @@
       "get" : {
         "operationId" : "me",
         "parameters" : [ {
-          "in" : "query",
-          "name" : "user",
+          "description" : "One of the demo users (GET /api/users), for example alice",
+          "in" : "header",
+          "name" : "X-Demo-User",
           "required" : true,
           "schema" : {
-            "$ref" : "#/components/schemas/UserContext"
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -510,11 +496,12 @@
             "type" : "string"
           }
         }, {
-          "in" : "query",
-          "name" : "user",
+          "description" : "One of the demo users (GET /api/users), for example alice",
+          "in" : "header",
+          "name" : "X-Demo-User",
           "required" : true,
           "schema" : {
-            "$ref" : "#/components/schemas/UserContext"
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -554,11 +541,12 @@
             "type" : "string"
           }
         }, {
-          "in" : "query",
-          "name" : "user",
+          "description" : "One of the demo users (GET /api/users), for example alice",
+          "in" : "header",
+          "name" : "X-Demo-User",
           "required" : true,
           "schema" : {
-            "$ref" : "#/components/schemas/UserContext"
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -590,13 +578,6 @@
       "get" : {
         "operationId" : "list",
         "parameters" : [ {
-          "in" : "query",
-          "name" : "user",
-          "required" : false,
-          "schema" : {
-            "$ref" : "#/components/schemas/UserContext"
-          }
-        }, {
           "in" : "query",
           "name" : "state",
           "required" : false,
@@ -692,6 +673,14 @@
             "format" : "int32",
             "type" : "integer"
           }
+        }, {
+          "description" : "One of the demo users (GET /api/users), for example alice",
+          "in" : "header",
+          "name" : "X-Demo-User",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -748,11 +737,12 @@
             "type" : "integer"
           }
         }, {
-          "in" : "query",
-          "name" : "user",
+          "description" : "One of the demo users (GET /api/users), for example alice",
+          "in" : "header",
+          "name" : "X-Demo-User",
           "required" : false,
           "schema" : {
-            "$ref" : "#/components/schemas/UserContext"
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -780,11 +770,12 @@
             "type" : "integer"
           }
         }, {
-          "in" : "query",
-          "name" : "user",
+          "description" : "One of the demo users (GET /api/users), for example alice",
+          "in" : "header",
+          "name" : "X-Demo-User",
           "required" : true,
           "schema" : {
-            "$ref" : "#/components/schemas/UserContext"
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -824,11 +815,12 @@
             "type" : "integer"
           }
         }, {
-          "in" : "query",
-          "name" : "user",
+          "description" : "One of the demo users (GET /api/users), for example alice",
+          "in" : "header",
+          "name" : "X-Demo-User",
           "required" : true,
           "schema" : {
-            "$ref" : "#/components/schemas/UserContext"
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -856,11 +848,12 @@
             "type" : "integer"
           }
         }, {
-          "in" : "query",
-          "name" : "user",
+          "description" : "One of the demo users (GET /api/users), for example alice",
+          "in" : "header",
+          "name" : "X-Demo-User",
           "required" : true,
           "schema" : {
-            "$ref" : "#/components/schemas/UserContext"
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -890,11 +883,12 @@
             "type" : "integer"
           }
         }, {
-          "in" : "query",
-          "name" : "user",
+          "description" : "One of the demo users (GET /api/users), for example alice",
+          "in" : "header",
+          "name" : "X-Demo-User",
           "required" : true,
           "schema" : {
-            "$ref" : "#/components/schemas/UserContext"
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -927,11 +921,12 @@
             "type" : "integer"
           }
         }, {
-          "in" : "query",
-          "name" : "user",
+          "description" : "One of the demo users (GET /api/users), for example alice",
+          "in" : "header",
+          "name" : "X-Demo-User",
           "required" : true,
           "schema" : {
-            "$ref" : "#/components/schemas/UserContext"
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -964,11 +959,12 @@
             "type" : "integer"
           }
         }, {
-          "in" : "query",
-          "name" : "user",
+          "description" : "One of the demo users (GET /api/users), for example alice",
+          "in" : "header",
+          "name" : "X-Demo-User",
           "required" : true,
           "schema" : {
-            "$ref" : "#/components/schemas/UserContext"
+            "type" : "string"
           }
         } ],
         "responses" : {
