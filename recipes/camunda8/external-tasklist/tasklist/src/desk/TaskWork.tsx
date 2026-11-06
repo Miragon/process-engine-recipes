@@ -8,6 +8,7 @@ import { api, refreshTask, useTaskForm, useUsers } from '../api/queries';
 import type { Completion, FormData, HtmlFormView, JsonFormsView, Task } from '../api/types';
 import { count, nameOf } from '../format';
 import { FormFrame } from '../forms/FormFrame';
+import { refusal } from '../forms/frameHost';
 import { JsonForm } from '../forms/LazyJsonForm';
 import { useJsonFormState } from '../forms/useJsonFormState';
 import { useSession } from '../session';
@@ -326,8 +327,7 @@ function HtmlTaskForm({ task, form, readOnly, handover }: { task: Task; form: Ht
     try {
       return { ok: true, message: await send() };
     } catch (error) {
-      const problem = error instanceof Error ? error : new Error(String(error));
-      return { ok: false, message: problem.message, errors: isProblem(problem) ? problem.errors : [] };
+      return refusal(error);
     }
   };
   const onSubmit = (data: FormData) =>

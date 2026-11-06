@@ -4,6 +4,7 @@
 // instance, so this module offers both on top of @cfworker/json-schema, which interprets schemas instead.
 import { Validator, type OutputUnit } from '@cfworker/json-schema';
 import type { FormError } from './jsonFormsErrors';
+import { fromPointer, toPointer } from './pointer';
 
 export type ValidateFunction = ((data: unknown) => boolean) & { errors: FormError[] | null; schema: unknown };
 
@@ -46,21 +47,13 @@ const LIMITS = new Set([
   'multipleOf',
 ]);
 
-function segments(pointer: string): string[] {
-  return pointer
-    .replace(/^#/, '')
-    .split('/')
-    .slice(1)
-    .map((segment) => decodeURIComponent(segment).replaceAll('~1', '/').replaceAll('~0', '~'));
-}
-
 function at(root: unknown, path: string[]): unknown {
   return path.reduce<unknown>((node, segment) => (typeof node === 'object' && node !== null ? (node as Record<string, unknown>)[segment] : undefined), root);
 }
 
 /** One failure in the shape of an Ajv error, which JSON Forms and the error translator read. */
 function toFormError(unit: OutputUnit, root: unknown): FormError {
-  const keywordPath = segments(unit.keywordLocation);
+  const keywordPath = fromPointer(unit.keywordLocation);
   const parentSchema = at(root, keywordPath.slice(0, -1));
   const value = (parentSchema as Record<string, unknown> | undefined)?.[unit.keyword];
   const params: Record<string, unknown> = {};
@@ -71,9 +64,7 @@ function toFormError(unit: OutputUnit, root: unknown): FormError {
   else if (unit.keyword === 'const') params.allowedValue = value;
   else if (unit.keyword === 'enum') params.allowedValues = value;
   else if (unit.keyword === 'pattern') params.pattern = value;
-  const instancePath = segments(unit.instanceLocation)
-    .map((segment) => `/${segment.replaceAll('~', '~0').replaceAll('/', '~1')}`)
-    .join('');
+  const instancePath = toPointer(fromPointer(unit.instanceLocation));
   return { instancePath, schemaPath: unit.keywordLocation, keyword: unit.keyword, params, message: unit.error, schema: value, parentSchema: parentSchema as object };
 }
 

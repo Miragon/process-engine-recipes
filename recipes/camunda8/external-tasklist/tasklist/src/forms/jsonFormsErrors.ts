@@ -2,16 +2,21 @@
 import type { ErrorTranslator } from '@jsonforms/core';
 import type { JsonFormsInitStateProps } from '@jsonforms/react';
 import type { FieldError, FormData } from '../api/types';
+import { fromPointer, toPointer } from './pointer';
 
 export type FormError = NonNullable<JsonFormsInitStateProps['additionalErrors']>[number];
 
-/** The applications name fields with dots (`customer.email`, `items.0.ready`); JSON Forms matches JSON pointers. */
-export function toInstancePath(field: string): string {
-  const segments = field
+/** The segments of a field as the applications name it, with dots (`customer.email`, `items.0.ready`, `items[0]`). */
+function fieldSegments(field: string): string[] {
+  return field
     .replace(/\[(\d+)\]/g, '.$1')
     .split('.')
     .filter((segment) => segment !== '');
-  return segments.map((segment) => `/${segment.replaceAll('~', '~0').replaceAll('/', '~1')}`).join('');
+}
+
+/** The JSON pointer JSON Forms matches for a field of the application. */
+export function toInstancePath(field: string): string {
+  return toPointer(fieldSegments(field));
 }
 
 /** A field error of the application as an error JSON Forms shows at the control of that field. */
@@ -26,10 +31,7 @@ export function toFormError({ field, message }: FieldError): FormError {
 export function controlPath(error: FormError): string {
   const params = error.params as Record<string, unknown>;
   const property = ['required', 'dependencies'].includes(error.keyword) ? params.missingProperty : undefined;
-  const path = error.instancePath
-    .split('/')
-    .slice(1)
-    .map((segment) => segment.replaceAll('~1', '/').replaceAll('~0', '~'));
+  const path = fromPointer(error.instancePath);
   return [...path, ...(typeof property === 'string' ? [property] : [])].join('.');
 }
 
@@ -50,11 +52,7 @@ export function fieldCount(errors: FormError[]): number {
 
 /** The value at a dotted path, for telling which field the user changed. */
 export function valueAt(data: unknown, field: string): unknown {
-  return toInstancePath(field)
-    .split('/')
-    .slice(1)
-    .map((segment) => segment.replaceAll('~1', '/').replaceAll('~0', '~'))
-    .reduce<unknown>((value, segment) => (typeof value === 'object' && value !== null ? (value as Record<string, unknown>)[segment] : undefined), data);
+  return fieldSegments(field).reduce<unknown>((value, segment) => (typeof value === 'object' && value !== null ? (value as Record<string, unknown>)[segment] : undefined), data);
 }
 
 /**

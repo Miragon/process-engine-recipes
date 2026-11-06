@@ -7,6 +7,7 @@ import { isProblem } from '../api/client';
 import { api, useFirstTask, useStartForm, useStartForms } from '../api/queries';
 import type { FormData, JsonFormsView, StartResult } from '../api/types';
 import { FormFrame } from '../forms/FormFrame';
+import { refusal } from '../forms/frameHost';
 import { JsonForm } from '../forms/LazyJsonForm';
 import { useJsonFormState } from '../forms/useJsonFormState';
 import { Button, IconButton } from '../ui/Button';
@@ -127,8 +128,7 @@ export function StartFormDetail({ start, onClose, onOpenTask }: StartFormDetailP
                 started(result);
                 return { ok: true, message: result.businessId ? `${result.businessId} placed.` : 'Process started.' };
               } catch (error) {
-                const problem = error instanceof Error ? error : new Error(String(error));
-                return { ok: false, message: problem.message, errors: isProblem(problem) ? problem.errors : [] };
+                return refusal(error);
               }
             }}
             onDraft={() => Promise.resolve({ ok: false, message: 'Start forms keep no drafts.' })}

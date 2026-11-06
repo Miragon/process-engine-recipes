@@ -7,6 +7,7 @@ import {
   type InitPayload,
   type ResultPayload,
 } from '@tasklist/form-protocol';
+import { isProblem } from '../api/client';
 import type { FormData } from '../api/types';
 
 export interface FrameHostOptions {
@@ -27,6 +28,12 @@ export interface FrameHostOptions {
 export const FRAME_HEIGHT = { min: 120, max: 8000 } as const;
 
 const FAILED: ResultPayload = { ok: false, message: "The tasklist couldn't send the form. Try again." };
+
+/** The answer to the frame when sending failed: the message and, for a refusal (422), the field errors. */
+export function refusal(error: unknown): ResultPayload {
+  const problem = error instanceof Error ? error : new Error(String(error));
+  return { ok: false, message: problem.message, errors: isProblem(problem) ? problem.errors : [] };
+}
 
 /**
  * Listens on the tasklist's window for messages of the frame. Following the protocol it sends `init` once per
