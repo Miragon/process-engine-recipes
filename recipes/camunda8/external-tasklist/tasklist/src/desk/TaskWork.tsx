@@ -34,6 +34,8 @@ export function TaskWork({ task }: { task: Task }) {
   const sent = useCompletionSent(task.userTaskKey);
   const open = task.state === 'OPEN';
   const mine = task.assignee !== null && task.assignee !== undefined && task.assignee === userId;
+  // Once the task is the user's, "Show form" has done its job: handing the task back brings the claim card back.
+  if (mine && preview) setPreview(false);
   const showForm = !open || mine || preview;
   const form = useTaskForm(task, showForm);
   const formShown = showForm && form.data !== undefined;

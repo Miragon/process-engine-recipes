@@ -9,6 +9,15 @@ test('sales checks the order in the sandboxed form of the order application', as
 
   await openAs(page, 'alice', `/?task=${task.userTaskKey}`);
   const detail = taskDetail(page);
+
+  // A look at the form first, a claim from the action bar and an unclaim bring the claim card back, with the focus.
+  await detail.getByRole('button', { name: 'Show form' }).click();
+  await expect(detail.getByText('Read-only: claim the task to change it')).toBeVisible();
+  await detail.getByRole('button', { name: 'Claim task' }).click();
+  await detail.getByRole('button', { name: 'Unclaim' }).click();
+  await expect(detail.getByRole('button', { name: 'Show form' })).toBeVisible();
+  await expect(detail.locator('.claim-card')).toBeFocused();
+
   await detail.getByRole('button', { name: 'Claim task' }).click();
 
   // The micro-frontend runs sandboxed without allow-same-origin, from the task manager on the tasklist's origin.
