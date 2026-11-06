@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Command } from '../api/client';
 import { api, refreshTask, storeTask } from '../api/queries';
 import type { Task, TaskUpdate } from '../api/types';
+import { useSession } from '../session';
 import { useToast } from '../ui/toast';
 
 /**
@@ -11,9 +12,11 @@ import { useToast } from '../ui/toast';
 export function useTaskCommands(task: Task) {
   const client = useQueryClient();
   const toast = useToast();
+  const { userId } = useSession();
 
   const answered = ({ task: updated, confirmed }: Command, message: string) => {
-    if (confirmed) storeTask(client, updated);
+    // Filed under the user who sent the command, even if the demo user changed meanwhile: it carries their actions.
+    if (confirmed) storeTask(client, updated, userId);
     else refreshTask(client, task);
     toast(confirmed ? { tone: 'success', message } : { tone: 'info', message: 'Camunda accepted the change. It shows as soon as its listeners have finished.' });
   };
