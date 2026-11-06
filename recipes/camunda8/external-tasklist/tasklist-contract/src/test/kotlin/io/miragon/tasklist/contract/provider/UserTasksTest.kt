@@ -10,7 +10,11 @@ import io.miragon.tasklist.contract.ValidationFailed
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
+import org.apache.hc.client5.http.ConnectTimeoutException
 import java.net.ConnectException
+import java.net.NoRouteToHostException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.util.concurrent.TimeoutException
 
 class UserTasksTest {
@@ -31,12 +35,16 @@ class UserTasksTest {
     fun `an answer that never came may still complete the task`() {
         assertThat(completionOutcome(problem(504, "request timed out between gateway and broker"))).isEqualTo(CompletionOutcome.PENDING)
         assertThat(completionOutcome(ClientException("timed out", TimeoutException()))).isEqualTo(CompletionOutcome.PENDING)
+        assertThat(completionOutcome(ClientException("read timed out", SocketTimeoutException()))).isEqualTo(CompletionOutcome.PENDING)
     }
 
     @Test
     fun `an unreachable Camunda changed nothing`() {
-        assertThatThrownBy { completionOutcome(ClientException("connection refused", ConnectException())) }
-            .isInstanceOf(CamundaUnavailable::class.java)
+        for (cause in listOf(ConnectException(), UnknownHostException("camunda"), NoRouteToHostException(), ConnectTimeoutException("connect timed out"))) {
+            assertThatThrownBy { completionOutcome(ClientException("not sent", cause)) }
+                .describedAs(cause.javaClass.simpleName)
+                .isInstanceOf(CamundaUnavailable::class.java)
+        }
     }
 
     @Test
