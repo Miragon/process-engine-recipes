@@ -98,7 +98,7 @@ class TaskRepositoryTest(@Autowired private val tasks: TaskRepository) {
     @Test
     fun `filters by domain, assignment, group, state and text`() {
         val order = event(EventType.CREATING, jobKey = 10, domain = "order", groups = listOf("sales"), subject = "Order ORD-1001 · Alice")
-        val payment = event(EventType.CREATING, jobKey = 10, domain = "payment", groups = listOf("finance"), assignee = "bob")
+        val payment = event(EventType.CREATING, jobKey = 10, domain = "payment", groups = listOf("finance"), assignee = "bob", processInstanceKey = 7)
         val done = event(EventType.CREATING, jobKey = 10, domain = "order", groups = listOf("sales"))
         listOf(order, payment, done).forEach { tasks.upsert(it, details, now) }
         tasks.upsert(event(EventType.COMPLETING, jobKey = 20, userTaskKey = done.userTaskKey), details, now)
@@ -110,10 +110,13 @@ class TaskRepositoryTest(@Autowired private val tasks: TaskRepository) {
         assertThat(keys(TaskQuery(assignment = TaskQuery.Assignment.UNASSIGNED))).containsExactly(order.userTaskKey)
         assertThat(keys(TaskQuery(candidateGroup = "finance"))).containsExactly(payment.userTaskKey)
         assertThat(keys(TaskQuery(q = "ord-1001"))).containsExactly(order.userTaskKey)
+        assertThat(keys(TaskQuery(processInstanceKey = 7))).containsExactly(payment.userTaskKey)
         assertThat(keys(TaskQuery(states = listOf(TaskState.COMPLETED)))).containsExactly(done.userTaskKey)
         assertThat(tasks.search(TaskQuery(states = null)).second).isEqualTo(3)
 
-        val facets = tasks.facets(listOf(TaskState.OPEN))
+        val facets = tasks.facets(listOf(TaskState.OPEN), "bob")
+        assertThat(facets.assignments).isEqualTo(AssignmentCounts(any = 2, unassigned = 1, mine = 1))
+        assertThat(tasks.facets(listOf(TaskState.OPEN), null).assignments.mine).isZero()
         assertThat(facets.domains).containsExactly("order" to 1L, "payment" to 1L)
         assertThat(facets.candidateGroups).containsExactly("finance" to 1L, "sales" to 1L)
     }
@@ -128,12 +131,13 @@ class TaskRepositoryTest(@Autowired private val tasks: TaskRepository) {
         domain: String = "order",
         groups: List<String> = listOf("sales"),
         subject: String? = null,
+        processInstanceKey: Long = 2,
     ) = UserTaskEvent(
         jobKey = jobKey,
         type = type,
         userTaskKey = userTaskKey,
         elementInstanceKey = 1,
-        processInstanceKey = 2,
+        processInstanceKey = processInstanceKey,
         processDefinitionKey = 3,
         processDefinitionId = "$domain-process",
         processDefinitionVersion = 1,

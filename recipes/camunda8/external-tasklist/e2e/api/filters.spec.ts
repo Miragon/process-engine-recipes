@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test';
 import { Task, claim, complete, json, placeOrder, tasklistAs, waitForTask } from './stack';
 
 type Page = { items: Task[]; total: number };
-type Facets = { domains: { value: string; label: string; count: number }[]; candidateGroups: { value: string }[] };
+type Facet = { value: string; label: string; count: number };
+type Facets = { assignments: Facet[]; domains: Facet[]; candidateGroups: Facet[] };
 
 test('one tasklist filters the tasks of both applications', async () => {
   const alice = await tasklistAs('alice');
@@ -41,6 +42,8 @@ test('one tasklist filters the tasks of both applications', async () => {
   expect(search.items.map((t) => t.userTaskKey)).toEqual([mine.userTaskKey]);
 
   const facets = await json<Facets>(await alice.get('/api/tasks/facets', { params: { state: 'ALL' } }));
+  expect(facets.assignments.map((a) => a.value)).toEqual(['ANY', 'MINE', 'UNASSIGNED']);
+  expect(facets.assignments[0].count).toBe(facets.domains.reduce((sum, d) => sum + d.count, 0));
   expect(facets.domains.map((d) => d.label)).toEqual(expect.arrayContaining(['Orders', 'Payments']));
   expect(facets.candidateGroups.map((g) => g.value)).toEqual(expect.arrayContaining(['sales', 'finance']));
 });
