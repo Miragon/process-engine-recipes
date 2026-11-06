@@ -16,7 +16,7 @@ Every message is an object `{protocol: "tasklist-form", version: 1, type, payloa
 
 | Direction | `type` | `payload` | Meaning |
 | --- | --- | --- | --- |
-| frame → host | `ready` | — | The bundle has loaded and listens. |
+| frame → host | `ready` | none | The bundle has loaded and listens. |
 | host → frame | `init` | `{formRef, mode: "task" \| "start", data, readOnly, draftable}` | Render this form with this data. Sent once per load. |
 | frame → host | `resize` | `{height}` | Content height in pixels, so the host can size the iframe. |
 | frame → host | `draft` | `{data}` | Save without completing (only if `draftable`). |

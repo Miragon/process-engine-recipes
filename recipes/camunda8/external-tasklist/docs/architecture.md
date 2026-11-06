@@ -68,10 +68,10 @@ Every process application offers this API to the task manager. Module `tasklist-
 | `POST /tasklist/v1/tasks/{userTaskKey}/form` | `TaskContext` | `FormView` |
 | `POST /tasklist/v1/tasks/{userTaskKey}/draft` | `{context: TaskContext, data}` | `204`; `405` if the form keeps no drafts |
 | `POST /tasklist/v1/tasks/{userTaskKey}/completion` | `{context: TaskContext, data}` | `204` completed, `202` accepted but not yet confirmed by Camunda |
-| `GET /tasklist/v1/start-forms` | – | `[{id, formRef, label, description}]` |
+| `GET /tasklist/v1/start-forms` | none | `[{id, formRef, label, description}]` |
 | `POST /tasklist/v1/start-forms/{id}/form` | `{user}` | `FormView` |
 | `POST /tasklist/v1/start-forms/{id}/submission` | `{user, data}` | `201 {processInstanceKey, businessId}` |
-| `GET /tasklist/v1/forms/{formRef}/frame` | – | the HTML bundle of the application's micro-frontend, with its own content security policy |
+| `GET /tasklist/v1/forms/{formRef}/frame` | none | the HTML bundle of the application's micro-frontend, with its own content security policy |
 
 **`TaskContext`** is built by the task manager from its projection and the signed-in user. It is never taken from the browser:
 
