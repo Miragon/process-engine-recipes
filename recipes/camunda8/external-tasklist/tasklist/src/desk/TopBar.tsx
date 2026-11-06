@@ -60,7 +60,8 @@ function SearchField({ value, disabled, onSearch }: { value: string; disabled: b
   const [synced, setSynced] = useState(value);
   if (value !== synced) {
     setSynced(value);
-    setText(value);
+    // The query string keeps the search trimmed; a space the user just typed stays in the field.
+    if (text.trim() !== value) setText(value);
   }
 
   useEffect(() => {
