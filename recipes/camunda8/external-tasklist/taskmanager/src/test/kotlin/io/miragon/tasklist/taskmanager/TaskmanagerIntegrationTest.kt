@@ -152,6 +152,11 @@ class TaskmanagerIntegrationTest(
         assertThat(call(HttpMethod.GET, "/api/tasks?assignment=MINE", user = null).status).isEqualTo(401)
     }
 
+    @Test
+    fun `publishes its OpenAPI document`() {
+        ApiSnapshot.verify(call(HttpMethod.GET, "/v3/api-docs", user = null).body!!, "taskmanager.json", mapper)
+    }
+
     /** Starts a review and returns the key of its user task once the projection has it. */
     private fun startReview(documentId: String): String {
         val instance = camunda.newCreateInstanceCommand()

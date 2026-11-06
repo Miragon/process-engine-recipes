@@ -1,0 +1,1032 @@
+{
+  "components" : {
+    "schemas" : {
+      "ApplicationDto" : {
+        "properties" : {
+          "domain" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "DemoUserView" : {
+        "properties" : {
+          "groups" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Facet" : {
+        "properties" : {
+          "count" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "value" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Facets" : {
+        "properties" : {
+          "candidateGroups" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Facet"
+            },
+            "type" : "array"
+          },
+          "domains" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Facet"
+            },
+            "type" : "array"
+          },
+          "processes" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Facet"
+            },
+            "type" : "array"
+          },
+          "states" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Facet"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "FormView" : {
+        "discriminator" : {
+          "propertyName" : "type"
+        },
+        "properties" : {
+          "data" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          },
+          "draftable" : {
+            "type" : "boolean"
+          },
+          "formRef" : {
+            "type" : "string"
+          },
+          "readOnly" : {
+            "type" : "boolean"
+          },
+          "type" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type" ],
+        "type" : "object"
+      },
+      "HistoryEntry" : {
+        "properties" : {
+          "action" : {
+            "type" : [ "string", "null" ]
+          },
+          "assignee" : {
+            "type" : [ "string", "null" ]
+          },
+          "changedAttributes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "eventType" : {
+            "type" : "string"
+          },
+          "occurredAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "source" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "HtmlFormView" : {
+        "allOf" : [ {
+          "$ref" : "#/components/schemas/FormView"
+        } ]
+      },
+      "JsonFormsView" : {
+        "allOf" : [ {
+          "$ref" : "#/components/schemas/FormView"
+        }, {
+          "properties" : {
+            "schema" : {
+              "additionalProperties" : { },
+              "type" : "object"
+            },
+            "uiSchema" : {
+              "additionalProperties" : { },
+              "type" : [ "object", "null" ]
+            }
+          },
+          "type" : "object"
+        } ]
+      },
+      "SseEmitter" : {
+        "properties" : {
+          "timeout" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "StartFormEntry" : {
+        "properties" : {
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "domain" : {
+            "type" : "string"
+          },
+          "domainLabel" : {
+            "type" : "string"
+          },
+          "formRef" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "StartResult" : {
+        "properties" : {
+          "businessId" : {
+            "type" : [ "string", "null" ]
+          },
+          "processInstanceKey" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "SubmissionBody" : {
+        "properties" : {
+          "data" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          }
+        },
+        "type" : "object"
+      },
+      "TaskDto" : {
+        "properties" : {
+          "actions" : {
+            "items" : {
+              "enum" : [ "CLAIM", "UNCLAIM", "UPDATE", "COMPLETE" ],
+              "type" : "string"
+            },
+            "type" : "array",
+            "uniqueItems" : true
+          },
+          "assignee" : {
+            "type" : [ "string", "null" ]
+          },
+          "businessId" : {
+            "type" : [ "string", "null" ]
+          },
+          "candidateGroups" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "candidateUsers" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "closedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "closedBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "domain" : {
+            "type" : "string"
+          },
+          "domainLabel" : {
+            "type" : "string"
+          },
+          "dueDate" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "elementId" : {
+            "type" : "string"
+          },
+          "followUpDate" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "formRef" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "priority" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "processDefinitionId" : {
+            "type" : "string"
+          },
+          "processDefinitionVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "processInstanceKey" : {
+            "type" : "string"
+          },
+          "processName" : {
+            "type" : [ "string", "null" ]
+          },
+          "state" : {
+            "enum" : [ "OPEN", "COMPLETED", "CANCELED" ],
+            "type" : "string"
+          },
+          "subject" : {
+            "type" : [ "string", "null" ]
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "userTaskKey" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "TaskPage" : {
+        "properties" : {
+          "from" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TaskDto"
+            },
+            "type" : "array"
+          },
+          "limit" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "TaskUpdate" : {
+        "properties" : {
+          "candidateGroups" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : [ "array", "null" ]
+          },
+          "dueDate" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "priority" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "UserContext" : {
+        "properties" : {
+          "groups" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "id" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      }
+    }
+  },
+  "info" : {
+    "title" : "OpenAPI definition",
+    "version" : "v0"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/api/applications" : {
+      "get" : {
+        "operationId" : "applications",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ApplicationDto"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "meta-controller" ]
+      }
+    },
+    "/api/events" : {
+      "get" : {
+        "operationId" : "subscribe",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "text/event-stream" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SseEmitter"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "task-events" ]
+      }
+    },
+    "/api/forms/{domain}/{formRef}/frame" : {
+      "get" : {
+        "operationId" : "frame",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "domain",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "formRef",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "text/html" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "start-form-controller" ]
+      }
+    },
+    "/api/me" : {
+      "get" : {
+        "operationId" : "me",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "user",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UserContext"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DemoUserView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "meta-controller" ]
+      }
+    },
+    "/api/start-forms" : {
+      "get" : {
+        "operationId" : "startForms",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/StartFormEntry"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "start-form-controller" ]
+      }
+    },
+    "/api/start-forms/{domain}/{id}/form" : {
+      "get" : {
+        "operationId" : "startForm",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "domain",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "user",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UserContext"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "oneOf" : [ {
+                    "$ref" : "#/components/schemas/HtmlFormView"
+                  }, {
+                    "$ref" : "#/components/schemas/JsonFormsView"
+                  } ]
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "start-form-controller" ]
+      }
+    },
+    "/api/start-forms/{domain}/{id}/submission" : {
+      "post" : {
+        "operationId" : "submit",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "domain",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "user",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UserContext"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubmissionBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StartResult"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "start-form-controller" ]
+      }
+    },
+    "/api/tasks" : {
+      "get" : {
+        "operationId" : "list",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "user",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/components/schemas/UserContext"
+          }
+        }, {
+          "in" : "query",
+          "name" : "state",
+          "required" : false,
+          "schema" : {
+            "default" : "OPEN",
+            "enum" : [ "OPEN", "COMPLETED", "CANCELED", "CLOSED", "ALL" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "domain",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "assignment",
+          "required" : false,
+          "schema" : {
+            "default" : "ANY",
+            "enum" : [ "MINE", "UNASSIGNED", "ANY" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "candidateGroup",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "processDefinitionId",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "priorityMin",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "dueBefore",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "default" : "CREATED_AT",
+            "enum" : [ "CREATED_AT", "PRIORITY", "DUE_DATE" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "descending",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaskPage"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "task-controller" ]
+      }
+    },
+    "/api/tasks/facets" : {
+      "get" : {
+        "operationId" : "facets",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "state",
+          "required" : false,
+          "schema" : {
+            "default" : "OPEN",
+            "enum" : [ "OPEN", "COMPLETED", "CANCELED", "CLOSED", "ALL" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Facets"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "task-controller" ]
+      }
+    },
+    "/api/tasks/{userTaskKey}" : {
+      "get" : {
+        "operationId" : "get",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userTaskKey",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "user",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/components/schemas/UserContext"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaskDto"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "task-controller" ]
+      },
+      "patch" : {
+        "operationId" : "update",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userTaskKey",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "user",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UserContext"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TaskUpdate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaskDto"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "task-controller" ]
+      }
+    },
+    "/api/tasks/{userTaskKey}/assignment" : {
+      "delete" : {
+        "operationId" : "unclaim",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userTaskKey",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "user",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UserContext"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaskDto"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "task-controller" ]
+      },
+      "post" : {
+        "operationId" : "claim",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userTaskKey",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "user",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UserContext"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaskDto"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "task-controller" ]
+      }
+    },
+    "/api/tasks/{userTaskKey}/completion" : {
+      "post" : {
+        "operationId" : "complete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userTaskKey",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "user",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UserContext"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubmissionBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "task-controller" ]
+      }
+    },
+    "/api/tasks/{userTaskKey}/draft" : {
+      "post" : {
+        "operationId" : "draft",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userTaskKey",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "user",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UserContext"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubmissionBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "task-controller" ]
+      }
+    },
+    "/api/tasks/{userTaskKey}/form" : {
+      "get" : {
+        "operationId" : "form",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userTaskKey",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "user",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UserContext"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "oneOf" : [ {
+                    "$ref" : "#/components/schemas/HtmlFormView"
+                  }, {
+                    "$ref" : "#/components/schemas/JsonFormsView"
+                  } ]
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "task-controller" ]
+      }
+    },
+    "/api/tasks/{userTaskKey}/history" : {
+      "get" : {
+        "operationId" : "history",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userTaskKey",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/HistoryEntry"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "task-controller" ]
+      }
+    },
+    "/api/users" : {
+      "get" : {
+        "operationId" : "users",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/DemoUserView"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "meta-controller" ]
+      }
+    }
+  }
+}
