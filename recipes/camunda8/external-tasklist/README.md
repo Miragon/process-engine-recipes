@@ -26,7 +26,7 @@ You need a JDK 25 and Docker or Podman with Compose and about 6 GB of memory for
 
 ## How it works
 
-![The task manager between the tasklist, Camunda 8.10 and the order and payment applications](images/architecture.png)
+![The tasklist calls only the task manager; the task manager sees every user task through a global listener and forwards forms and completions to the order and payment applications](images/overview.png)
 
 1. **The applications model plain Camunda user tasks.** Each task names its form with `zeebe:formDefinition externalReference="check-order@1"` (*Custom form key* in the Modeler) and its application with the task header `domain`. The applications never call the task manager. The [BPMN conventions](docs/architecture.md#1-bpmn-conventions-for-a-process-application) list everything.
 2. **One global user task listener reports every task.** At startup the task manager registers a listener for all user task events in the cluster (`POST /v2/global-task-listeners`). Camunda hands each `creating`, `assigning`, `updating`, `completing` and `canceling` event to the task manager's job worker and waits for it. The worker writes the task into a PostgreSQL projection that the tasklist filters on.
