@@ -211,7 +211,7 @@ function useCompletion(task: Task) {
       toast(
         outcome === 'completed'
           ? { tone: 'success', message: `${task.name} completed.` }
-          : { tone: 'info', message: 'Camunda accepted the completion. The task closes once its listeners finished.' },
+          : { tone: 'info', message: 'Camunda accepted the completion. The task closes once its listeners have finished.' },
       );
     },
     onError: refused,
@@ -230,7 +230,7 @@ function JsonTaskForm({ task, form, readOnly, handover }: { task: Task; form: Js
   const state = useJsonFormState(form.data);
   const { complete, draft } = useCompletion(task);
   const [failed, setFailed] = useState<'complete' | 'draft'>('complete');
-  // After a 202 Camunda completes the task once its listeners finished; until then nothing may be sent again.
+  // After a 202 Camunda completes the task once its listeners have finished; until then nothing may be sent again.
   const [accepted, setAccepted] = useState(false);
   const sending = complete.isPending || draft.isPending;
   const editable = !readOnly && !accepted && task.actions.includes('COMPLETE');
