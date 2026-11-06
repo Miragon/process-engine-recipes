@@ -166,7 +166,13 @@ export function refreshTask(client: Client, task: Task | string) {
   refreshTasks(client, [typeof task === 'string' ? task : task.userTaskKey]);
 }
 
-/** Puts a task the task manager returned into the cache, so the detail shows it without another request. */
+/**
+ * Puts a task the task manager returned after a confirmed command into the cache, so the detail shows it without
+ * another request, and loads again what else shows it. What other demo users saw of the task turns stale first.
+ */
 export function storeTask(client: Client, task: Task) {
+  void client.invalidateQueries({ queryKey: ['task', task.userTaskKey], refetchType: 'none' });
   client.setQueryData(keys.task(task.userTaskKey, currentUser()), task);
+  refreshLists(client);
+  void client.invalidateQueries({ queryKey: keys.history(task.userTaskKey) });
 }

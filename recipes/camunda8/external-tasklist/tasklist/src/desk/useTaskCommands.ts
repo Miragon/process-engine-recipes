@@ -14,7 +14,7 @@ export function useTaskCommands(task: Task) {
 
   const answered = ({ task: updated, confirmed }: Command, message: string) => {
     if (confirmed) storeTask(client, updated);
-    refreshTask(client, task);
+    else refreshTask(client, task);
     toast(confirmed ? { tone: 'success', message } : { tone: 'info', message: 'Camunda accepted the change. It shows as soon as its listeners have finished.' });
   };
   const failed = (error: Error) => {
