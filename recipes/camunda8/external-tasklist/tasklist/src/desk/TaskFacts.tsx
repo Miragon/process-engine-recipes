@@ -6,6 +6,7 @@ import { dateTime, dueDateTime, nameOf, PRIORITY_PRESETS, priorityLabel, priorit
 import { useSession } from '../session';
 import { IconButton } from '../ui/Button';
 import { useNow } from '../useNow';
+import { useCompleting } from './completions';
 import { Avatar, PriorityBadge } from './TaskMarks';
 import { useTaskCommands } from './useTaskCommands';
 
@@ -14,7 +15,9 @@ export function TaskFacts({ task }: { task: Task }) {
   const { userId } = useSession();
   const { data: users } = useUsers();
   const now = useNow();
-  const editable = task.actions.includes('UPDATE');
+  // Camunda refuses an update while the task completes.
+  const completing = useCompleting(task.userTaskKey, task.state === 'OPEN');
+  const editable = task.actions.includes('UPDATE') && !completing;
 
   return (
     <dl className="facts facts--card">
