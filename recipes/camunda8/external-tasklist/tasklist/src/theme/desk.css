@@ -483,6 +483,13 @@
   margin: auto;
 }
 
+.nothing-open__title {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
 /* Docked to the bottom of the pane while the form is longer than the screen; the dock hides what scrolls behind. */
 .actionbar-dock {
   position: sticky;

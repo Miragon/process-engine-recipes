@@ -68,11 +68,10 @@ function NothingOpen() {
   return (
     <div className="nothing-open">
       <Icon of={Inbox} size={22} />
-      <p>
-        <strong>No task open</strong>
-        <br />
-        <span className="muted">Pick a task from the list to see its details and its form.</span>
-      </p>
+      <div>
+        <h1 className="nothing-open__title">No task open</h1>
+        <p className="muted">Pick a task from the list to see its details and its form.</p>
+      </div>
     </div>
   );
 }
@@ -84,7 +83,7 @@ function ChooseUser({ notice }: { notice: string | null }) {
     <main className="choose-user">
       <div className="empty-card empty-card--wide">
         <img src={COMET} alt="" width={64} height={64} />
-        <h3 className="empty-card__title">Choose a demo user</h3>
+        <h1 className="empty-card__title">Choose a demo user</h1>
         <p className="empty-card__help">The recipe has no sign-in. The tasklist sends the user you choose with every request.</p>
         {notice && <StatusBox tone="danger" title="The task manager did not accept the user">{notice}</StatusBox>}
         {users.isError ? (

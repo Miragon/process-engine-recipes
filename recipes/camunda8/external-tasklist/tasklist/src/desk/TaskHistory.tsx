@@ -57,10 +57,10 @@ export function TaskHistory({ task }: { task: Task }) {
 
   return (
     <section className="history" aria-labelledby="history-title">
-      <h4 className="section-title" id="history-title">
+      <h2 className="section-title" id="history-title">
         <Icon of={History} size={14} />
         History
-      </h4>
+      </h2>
       {history.isPending ? (
         <p className="muted">Loading…</p>
       ) : history.isError ? (
