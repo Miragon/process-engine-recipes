@@ -40,8 +40,7 @@ export const keys = {
   applications: ['applications'] as const,
   startForms: ['start-forms'] as const,
   tasks: (user: string | null, query: TaskQuery) => ['tasks', user, query] as const,
-  facets: (state: StateFilter) => ['facets', state] as const,
-  counts: (user: string | null, state: StateFilter) => ['counts', user, state] as const,
+  facets: (user: string | null, state: StateFilter) => ['facets', user, state] as const,
   task: (key: string, user: string | null) => ['task', key, user] as const,
   history: (key: string) => ['history', key] as const,
   form: (key: string, user: string | null, assignee: string | null | undefined, state: string) =>
@@ -76,26 +75,10 @@ export function useTaskPage(query: TaskQuery) {
 }
 
 export function useFacets(state: StateFilter) {
-  return useQuery({
-    queryKey: keys.facets(state),
-    queryFn: ({ signal }) => api.facets(toStateQuery(state), signal),
-    placeholderData: keepPreviousData,
-  });
-}
-
-/** The facets have no counts per assignment, so the totals of two one-item pages stand in for them. */
-export function useAssignmentCounts(state: StateFilter) {
   const { userId } = useSession();
   return useQuery({
-    queryKey: keys.counts(userId, state),
-    queryFn: async ({ signal }) => {
-      const [mine, unassigned] = await Promise.all([
-        api.tasks({ state: toStateQuery(state), assignment: 'MINE', limit: 1 }, signal),
-        api.tasks({ state: toStateQuery(state), assignment: 'UNASSIGNED', limit: 1 }, signal),
-      ]);
-      return { mine: mine.total, unassigned: unassigned.total };
-    },
-    enabled: userId !== null,
+    queryKey: keys.facets(userId, state),
+    queryFn: ({ signal }) => api.facets(toStateQuery(state), signal),
     placeholderData: keepPreviousData,
   });
 }
@@ -167,11 +150,15 @@ export function useFirstTask(started: StartResult | null, waiting: boolean) {
   });
 }
 
-/** Loads again the lists, their counts and everything that shows one of the given tasks. */
-export function refreshTasks(client: Client, userTaskKeys: Iterable<string>) {
+/** Loads again the lists and their counts. */
+function refreshLists(client: Client) {
   void client.invalidateQueries({ queryKey: ['tasks'] });
   void client.invalidateQueries({ queryKey: ['facets'] });
-  void client.invalidateQueries({ queryKey: ['counts'] });
+}
+
+/** Loads again the lists, their counts and everything that shows one of the given tasks. */
+export function refreshTasks(client: Client, userTaskKeys: Iterable<string>) {
+  refreshLists(client);
   for (const key of userTaskKeys) {
     void client.invalidateQueries({ queryKey: ['task', key] });
     void client.invalidateQueries({ queryKey: keys.history(key) });

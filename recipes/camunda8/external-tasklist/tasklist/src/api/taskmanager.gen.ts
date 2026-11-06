@@ -277,6 +277,7 @@ export interface components {
             value: string;
         };
         Facets: {
+            assignments: components["schemas"]["Facet"][];
             candidateGroups: components["schemas"]["Facet"][];
             domains: components["schemas"]["Facet"][];
             processes: components["schemas"]["Facet"][];
@@ -571,6 +572,7 @@ export interface operations {
                 assignment?: "MINE" | "UNASSIGNED" | "ANY";
                 candidateGroup?: string;
                 processDefinitionId?: string;
+                processInstanceKey?: string;
                 priorityMin?: number;
                 dueBefore?: string;
                 q?: string;
@@ -604,7 +606,10 @@ export interface operations {
             query?: {
                 state?: "OPEN" | "COMPLETED" | "CANCELED" | "CLOSED" | "ALL";
             };
-            header?: never;
+            header?: {
+                /** @description One of the demo users (GET /api/users), for example alice */
+                "X-Demo-User"?: string;
+            };
             path?: never;
             cookie?: never;
         };

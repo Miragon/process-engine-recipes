@@ -1,4 +1,4 @@
-import { useApplications, useAssignmentCounts, useFacets } from '../api/queries';
+import { useApplications, useFacets } from '../api/queries';
 import type { Facet } from '../api/types';
 import { classes } from '../ui/tones';
 import type { Assignment, Filters, StateFilter } from './location';
@@ -18,14 +18,13 @@ const STATE_OPTIONS: { value: StateFilter; label: string; facet: string }[] = [
 /** The filters of the list with their counts. Domain and group toggle; assignment and state always have one choice. */
 export function FilterRail({ filters, onChange }: { filters: Filters; onChange: (filters: Filters) => void }) {
   const { data: facets } = useFacets(filters.state);
-  const { data: counts } = useAssignmentCounts(filters.state);
   const { data: applications = [] } = useApplications();
 
-  const total = facets?.domains.reduce((sum, facet) => sum + facet.count, 0);
+  const assigned = (value: string) => facets?.assignments.find((facet) => facet.value === value)?.count;
   const assignments: RailOption[] = [
-    { value: 'all', label: 'All tasks', count: total },
-    { value: 'mine', label: 'Mine', count: counts?.mine },
-    { value: 'unassigned', label: 'Unassigned', count: counts?.unassigned },
+    { value: 'all', label: 'All tasks', count: assigned('ANY') },
+    { value: 'mine', label: 'Mine', count: assigned('MINE') },
+    { value: 'unassigned', label: 'Unassigned', count: assigned('UNASSIGNED') },
   ];
   const domains = withSelected(
     [
