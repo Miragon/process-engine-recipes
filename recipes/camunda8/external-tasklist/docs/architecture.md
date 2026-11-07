@@ -14,6 +14,8 @@ This document describes the contracts between the parts of the recipe. The [READ
 | Tasklist | 3000 | the browser UI; talks only to the task manager |
 | PostgreSQL | 5432 | one database each for the task manager, orders and payments |
 
+**Engine access.** The applications reach Camunda only through the [Process Engine API](https://github.com/bpm-crafters/process-engine-api) 1.7 of bpm-crafters: `StartProcessApi`, `CorrelationApi`, `TaskSubscriptionApi` with `ServiceTaskCompletionApi` for their service tasks, and `UserTaskCompletionApi` for their forms. The core of the adapter for Camunda 8 (2026.09.1) runs on their Camunda client. Their package `engine.camunda` wires it and adds two implementations the adapter lacks: a start that sets the business ID and a correlation that reports when no instance waits. The task manager needs what the API does not offer (a blocking listener with job keys, claims, search) and stays on the Camunda client, in its package `camunda` behind the ports `TaskCommands`, `EngineUserTasks` and `ProcessModels`.
+
 ## Integration contract
 
 ### 1. BPMN conventions for a process application
@@ -102,7 +104,7 @@ Applications load their own entities by `businessId` and bind the submitted `dat
 | 422 | `VALIDATION_FAILED` | The data breaks a rule of the form; `errors` names the fields |
 | 503 | `UNAVAILABLE` | Camunda is not reachable; nothing was changed, try again |
 
-**Completing a task** is the application's job. It validates, stores its domain change and completes the user task inside one transaction (`CamundaClient.completeUserTask` from the contract module):
+**Completing a task** is the application's job. It validates, stores its domain change and completes the user task inside one transaction (`UserTaskCompletionApi.completeUserTask` from the contract module):
 
 | Camunda answers | The application |
 | --- | --- |
@@ -153,7 +155,7 @@ Services never integrate through Camunda: each one correlates messages only into
 | `POST order-app/api/v1/orders/{orderId}/cancellation {reason}` | `204` canceled; `409` the order can no longer be canceled |
 | `POST order-app/api/v1/orders {customer, items}` | `201 {orderId, processInstanceKey}`, the same as the start form, for scripts |
 
-The calling side is always a job worker. It completes the job on `2xx`. On `5xx`, `503` or a timeout it fails the job with one retry less and exponential backoff. Every other answer, `400` and `409` included, fails the job without retries: that raises an incident for a human, with the answer as its message (the workers complete and fail their jobs themselves, so the incident shows the reason and not a stack trace). Redirects are never followed.
+The calling side is always a job worker. It completes the job on `2xx`. On `5xx`, `503` or a timeout it fails the job with one retry less and exponential backoff. Every other answer, `400` and `409` included, fails the job without retries: that raises an incident for a human, with the answer as its message (the workers name the reason of every failure, so the incident shows it and not a stack trace). Redirects are never followed.
 
 ## Task projection
 
@@ -225,6 +227,7 @@ User task listeners block: Camunda keeps the task in `CREATING`, `ASSIGNING`, `U
 | Forms owned by the applications | The application that owns the data also owns its form, its validation and the completion | Camunda Forms rendered by the tasklist (see the README's Variations) |
 | The task manager as the only backend of the tasklist | The browser never talks to the applications, so they can trust the `TaskContext` (#158) | the browser loading forms from each application |
 | HTML forms in a sandboxed iframe with their own CSP | A micro-frontend cannot read the tasklist or send data anywhere (#159) | trusting the application's script in the tasklist's origin |
+| The Process Engine API in the applications | Their domain code depends on engine-neutral interfaces; only `engine.camunda` knows Camunda | the Camunda client in every class (see the README's Variations) |
 | REST with OpenAPI between the services | A standard, versioned API; Camunda only orchestrates inside one service | Camunda messages across services, Kafka (see Variations) |
 | A static registry of applications | Explicit: the task manager only forwards to configured applications | self-registration (see Variations) |
 
