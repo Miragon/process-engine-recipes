@@ -21,6 +21,7 @@
         <module>taskmanager</module>
         <module>processes/order</module>
         <module>processes/payment</module>
+        <module>tasklist</module>
     </modules>
 
     <properties>

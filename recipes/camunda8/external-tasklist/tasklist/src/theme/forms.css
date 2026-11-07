@@ -1,0 +1,395 @@
+/* The forms: JSON Forms (vanilla renderers, classes from jsonFormsSetup.ts) and the frame of HTML forms.
+   Inputs are sunk into the card: area grund, frame kontur, label 13px/600, errors in the danger role. */
+
+.form-card {
+  padding: 24px;
+}
+
+.form-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.input,
+.jf-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--outline);
+  border-radius: var(--cd-radius-sm);
+}
+
+.input--compact {
+  width: auto;
+  min-height: 32px;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+textarea.jf-input {
+  min-height: 64px;
+  resize: vertical;
+}
+
+.input::placeholder,
+.jf-input::placeholder {
+  color: var(--ink-quiet);
+}
+
+.input:focus,
+.jf-input:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.input:disabled,
+.jf-input:disabled {
+  color: var(--ink-quiet);
+  background: var(--hover);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
+/* Layouts */
+
+.jf-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.jf-row {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 0 24px;
+}
+
+.jf-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.jf-group__title {
+  margin-bottom: 12px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Groups are sections of the form, divided by a line like in the mockup. */
+.vertical-layout-item:not(:first-child):has(> .jf-group) {
+  margin-top: 6px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.jf-text {
+  margin-bottom: 16px;
+  color: var(--ink-quiet);
+}
+
+/* Controls */
+
+.jf-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+}
+
+.jf-label {
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.jf-choice > .jf-label {
+  margin-bottom: 4px;
+}
+
+.has-error .jf-input {
+  border-color: var(--cd-ui-danger);
+  box-shadow: 0 0 0 1px var(--cd-ui-danger) inset;
+}
+
+.jf-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 12.5px;
+}
+
+.jf-message svg {
+  flex: none;
+}
+
+.jf-message--error {
+  color: var(--cd-ui-danger);
+}
+
+.jf-message--description {
+  color: var(--ink-quiet);
+}
+
+.jf-fact {
+  gap: 3px;
+}
+
+.jf-fact__label {
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+
+.jf-fact__value {
+  font-weight: 550;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.jf-fact__empty {
+  font-weight: 400;
+  color: var(--ink-quiet);
+}
+
+/* Yes or no: a segmented control of two radio buttons */
+
+.segmented {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--cd-radius-md);
+}
+
+.has-error .segmented {
+  border-color: var(--cd-ui-danger);
+}
+
+.segmented__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 550;
+  border-radius: calc(var(--cd-radius-md) - 3px);
+  cursor: pointer;
+}
+
+.segmented__option.is-on {
+  background: var(--surface);
+  outline: 1px solid var(--line);
+  box-shadow: var(--cd-shadow-1);
+}
+
+.segmented__option:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.segmented.is-disabled .segmented__option {
+  color: var(--ink-quiet);
+  cursor: not-allowed;
+}
+
+.segmented.is-disabled .segmented__option.is-on {
+  background: var(--hover);
+  box-shadow: none;
+}
+
+/* Radio and checkbox: 18px, sunk like a field; checked shows the interaction color as frame and mark, no fill */
+
+.jf-radio,
+.jf-checkbox {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  background: var(--paper);
+  border: 1.5px solid var(--outline);
+  appearance: none;
+  cursor: pointer;
+}
+
+.jf-radio {
+  border-radius: 50%;
+}
+
+.jf-checkbox {
+  border-radius: 4px;
+}
+
+.jf-radio::before {
+  width: 8px;
+  height: 8px;
+  content: '';
+  background: var(--accent);
+  border-radius: 50%;
+  transform: scale(0);
+  transition: transform var(--cd-motion-fast) var(--cd-ease);
+}
+
+.jf-checkbox::before {
+  width: 5px;
+  height: 9px;
+  margin-top: -2px;
+  content: '';
+  border: solid var(--accent);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform var(--cd-motion-fast) var(--cd-ease);
+}
+
+.jf-radio:checked,
+.jf-checkbox:checked {
+  border-color: var(--accent);
+}
+
+.jf-radio:checked::before {
+  transform: scale(1);
+}
+
+.jf-checkbox:checked::before {
+  transform: rotate(45deg) scale(1);
+}
+
+.jf-radio:focus-visible {
+  outline: 0;
+}
+
+.jf-radio:disabled,
+.jf-checkbox:disabled {
+  background: var(--hover);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
+.jf-radio:disabled::before {
+  background: var(--ink-quiet);
+}
+
+.jf-checkbox:disabled::before {
+  border-color: var(--ink-quiet);
+}
+
+/* Object arrays as a table */
+
+.jf-table__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.items-table {
+  width: 100%;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+
+.items-table th {
+  padding: 0 8px 8px;
+  font-size: 12px;
+  font-weight: 550;
+  text-align: left;
+  color: var(--ink-quiet);
+  border-bottom: 1px solid var(--line);
+}
+
+.items-table td {
+  padding: 12px 8px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line);
+}
+
+.items-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.has-error .items-table {
+  border-top: 2px solid var(--cd-ui-danger);
+}
+
+.jf-table__empty {
+  color: var(--ink-quiet);
+}
+
+.jf-cell {
+  display: inline-flex;
+}
+
+.jf-array__controls {
+  display: flex;
+  gap: 4px;
+}
+
+/* The frame of an application's HTML form */
+
+.frame {
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--cd-radius-md);
+}
+
+.frame__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--ink-quiet);
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+.frame__label strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.frame__body {
+  position: relative;
+}
+
+.frame__view {
+  display: block;
+  width: 100%;
+  height: 320px;
+  background: var(--surface);
+  border: 0;
+}
+
+.frame__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  font-size: 13px;
+  color: var(--ink-quiet);
+  background: var(--surface);
+}
+
+.frame__loading .status {
+  width: 100%;
+  color: var(--ink);
+}

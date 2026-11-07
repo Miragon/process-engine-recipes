@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component
 import java.time.Duration
 
 /**
- * Reports the decided payment to the order application and answers the job as docs/architecture.md §5 asks:
+ * Reports the decided payment to the order application and answers the job as docs/architecture.md ("Contract of a process application") asks:
  * complete on 2xx, an incident for a person on a refusal, a retry with exponential backoff on 5xx or no answer.
  * Both failures carry the order application's answer, so an incident shows it instead of a stack trace.
  *
