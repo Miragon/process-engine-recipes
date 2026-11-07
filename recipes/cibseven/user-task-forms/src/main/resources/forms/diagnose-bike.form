@@ -1,0 +1,26 @@
+{
+  "id": "diagnoseBike",
+  "type": "default",
+  "schemaVersion": 16,
+  "components": [
+    {
+      "id": "Field_Findings",
+      "key": "findings",
+      "label": "Findings",
+      "type": "textarea",
+      "validate": { "required": true }
+    },
+    {
+      "id": "Field_PartsNeeded",
+      "key": "partsNeeded",
+      "label": "Parts needed",
+      "type": "textfield"
+    },
+    {
+      "id": "Field_EstimatedCost",
+      "key": "estimatedCost",
+      "label": "Estimated cost (EUR)",
+      "type": "number"
+    }
+  ]
+}
