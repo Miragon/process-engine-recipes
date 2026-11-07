@@ -1,0 +1,6 @@
+name: cibseven-user-task-forms
+problem: Tell the four user task form types of the Modeler apart and see who renders each one.
+engine: CIB seven 2.2
+language: Java
+java: "21"
+build: ./gradlew build

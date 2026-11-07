@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme {
+  --color-blau: #335de5;
+  --color-blau-link: #2b50d4;
+  --color-gruen: #00e676;
+  --color-grau: #f9f7f7;
+  --color-schwarz: #1d1d1d;
+  --color-weiss: #ffffff;
+  --color-danger: #c92a2a;
+
+  --text-h1: 40px;
+  --text-h1--line-height: 1.1;
+  --text-h1--font-weight: 700;
+  --text-h3: 21px;
+  --text-h3--line-height: 1.3;
+  --text-h3--font-weight: 600;
+  --text-body: 16px;
+  --text-body--line-height: 1.6;
+  --text-klein: 13px;
+  --text-klein--line-height: 1.5;
+
+  --spacing: 4px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(29, 29, 29, 0.06);
+  --container-page: 1152px;
+}
+
+@layer base {
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--color-schwarz);
+    background-color: var(--color-grau);
+  }
+}
+
+@layer components {
+  .card {
+    @apply flex flex-col gap-4 rounded-lg border border-schwarz/10 bg-weiss p-6 shadow-sm;
+  }
+
+  .field {
+    @apply flex flex-col gap-1.5 text-body font-medium;
+  }
+
+  .field-input {
+    @apply w-full rounded-md border border-schwarz/15 bg-weiss px-3 py-2 text-body font-normal focus-visible:border-blau focus-visible:ring-2 focus-visible:ring-blau/30 focus-visible:outline-none aria-[invalid=true]:border-danger;
+  }
+
+  .field-error {
+    @apply text-klein font-medium text-danger;
+  }
+
+  .button-primary {
+    @apply inline-flex h-10 items-center justify-center self-start rounded-md bg-blau px-4 text-body font-medium text-weiss hover:bg-blau-link disabled:opacity-50;
+  }
+}

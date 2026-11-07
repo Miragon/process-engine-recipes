@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<process-application xmlns="http://www.camunda.org/schema/1.0/ProcessApplication">
+  <process-archive>
+    <resource>bike-repair.bpmn</resource>
+    <resource>forms/diagnose-bike.form</resource>
+    <resource>forms/check-repair-quality.html</resource>
+    <properties>
+      <property name="isDeleteUponUndeploy">false</property>
+      <property name="isScanForProcessDefinitions">false</property>
+    </properties>
+  </process-archive>
+</process-application>
