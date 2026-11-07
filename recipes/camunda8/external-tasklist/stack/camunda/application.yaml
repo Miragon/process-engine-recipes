@@ -1,0 +1,25 @@
+# Orchestration cluster (Zeebe, Operate, Tasklist, Admin) for local development, based on the
+# configuration samples of the official docker-compose-8.10 distribution.
+camunda:
+  security:
+    authentication:
+      method: basic
+      # The REST and gRPC APIs need no credentials; the web apps use demo/demo.
+      unprotected-api: true
+    authorizations:
+      enabled: false
+    initialization:
+      users:
+        - username: demo
+          password: demo
+          name: Demo User
+          email: demo@example.com
+      default-roles:
+        admin:
+          users:
+            - demo
+  data:
+    secondary-storage:
+      type: elasticsearch
+      elasticsearch:
+        url: http://elasticsearch:9200

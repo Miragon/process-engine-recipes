@@ -1,0 +1,72 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: taskmanager
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/taskmanager
+    username: taskmanager
+    password: taskmanager
+
+camunda:
+  client:
+    mode: self-managed
+    rest-address: http://localhost:8080
+    grpc-address: http://localhost:26500
+    # Above Camunda's 15 s gateway timeout, so a slow listener chain arrives as 504 instead of a client timeout.
+    request-timeout: 20s
+    auth:
+      method: none
+    worker:
+      defaults:
+        # A listener job blocks its user task; after a crash it is handed out again after this timeout.
+        timeout: 30s
+
+taskmanager:
+  listener:
+    id: taskmanager-projection
+    # A listener job that fails waits 2 s, 4 s, ... up to 1 min before the next attempt.
+    retries: 10
+    priority: 0
+  # Calls to the applications wait for Camunda (15 s) plus the listener chain.
+  provider-timeout: 25s
+  reconciler:
+    interval: 30s
+    lag: 10s
+    missing-grace: 30m
+    batch-size: 100
+  applications:
+    order:
+      label: Orders
+      base-url: http://localhost:8081
+      token: order-demo-token
+    payment:
+      label: Payments
+      base-url: http://localhost:8082
+      token: payment-demo-token
+  # Demo users without authentication: the tasklist sends the selected one as X-Demo-User.
+  users:
+    alice:
+      name: Alice Adams
+      groups: [ sales ]
+    bob:
+      name: Bob Baker
+      groups: [ finance ]
+    carol:
+      name: Carol Clark
+      groups: [ warehouse ]
+    demo:
+      name: Dana Demo
+      groups: [ sales, finance, warehouse ]
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  paths-to-match: /api/**

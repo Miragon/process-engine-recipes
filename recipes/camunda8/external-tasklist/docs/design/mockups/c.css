@@ -1,0 +1,26 @@
+/* Direction C: Workbench. A queue grouped by domain next to a focused work area. */
+.c-top { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 20px; background: var(--cd-ui-grund); border-bottom: 1px solid var(--cd-ui-linie); }
+.c-body { flex: 1; display: grid; grid-template-columns: 340px 1fr; min-height: 0; }
+.queue { background: var(--cd-ui-flaeche); border-right: 1px solid var(--cd-ui-linie); padding: 16px 14px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
+.seg-full { display: flex; }
+.seg-full label { flex: 1; justify-content: center; }
+.queue section h5 { padding: 0 4px; }
+.queue ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.qcard { padding: 12px 14px; border: 1px solid var(--cd-ui-linie); border-radius: var(--cd-radius-md); background: var(--cd-ui-flaeche); }
+.qcard.is-selected { border-color: var(--cd-ui-interaktion); box-shadow: 0 0 0 1px var(--cd-ui-interaktion); background: var(--cd-ui-hover); }
+.qcard-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; }
+.qcard-top time { font-size: 11.5px; }
+.qcard p { font-size: 12.5px; color: var(--cd-ui-text-leise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 2px 0 8px; }
+.qcard-meta { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.qcard-meta .avatar { margin-left: auto; width: 22px; height: 22px; font-size: 10px; }
+.c-main { padding: 28px 36px; overflow: hidden; display: flex; flex-direction: column; gap: 20px; }
+.c-title { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
+.c-title h1 { font-size: 28px; margin-bottom: 4px; }
+.c-actions { display: flex; gap: 10px; }
+.c-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.c-side { display: flex; flex-direction: column; gap: 16px; }
+.c-side .facts { grid-template-columns: 1fr; gap: 10px; }
+.c-side .facts div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.c-side .facts dt { margin: 0; }
+.c-grid > .card { padding: 24px 26px; }
+.c-grid .empty-form { min-height: 300px; }
