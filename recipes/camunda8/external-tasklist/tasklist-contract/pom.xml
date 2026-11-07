@@ -27,6 +27,11 @@
             <artifactId>kotlin-reflect</artifactId>
         </dependency>
         <dependency>
+            <groupId>dev.bpm-crafters.process-engine-api</groupId>
+            <artifactId>process-engine-api</artifactId>
+        </dependency>
+        <!-- The Process Engine API has no errors of its own; the completion reads Camunda's answer from its exceptions -->
+        <dependency>
             <groupId>io.camunda</groupId>
             <artifactId>camunda-client-java</artifactId>
         </dependency>

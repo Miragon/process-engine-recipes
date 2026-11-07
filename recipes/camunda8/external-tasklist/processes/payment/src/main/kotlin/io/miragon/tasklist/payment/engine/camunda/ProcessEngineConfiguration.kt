@@ -1,5 +1,6 @@
 package io.miragon.tasklist.payment.engine.camunda
 
+import dev.bpmcrafters.processengineapi.adapter.c8.task.completion.C8CamundaClientUserTaskCompletionApiImpl
 import dev.bpmcrafters.processengineapi.adapter.c8.task.completion.C8ExternalServiceTaskCompletionApiImpl
 import dev.bpmcrafters.processengineapi.adapter.c8.task.completion.FailureRetrySupplier
 import dev.bpmcrafters.processengineapi.adapter.c8.task.delivery.SubscribingServiceTaskDelivery
@@ -9,6 +10,7 @@ import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
 import dev.bpmcrafters.processengineapi.process.StartProcessApi
 import dev.bpmcrafters.processengineapi.task.ServiceTaskCompletionApi
 import dev.bpmcrafters.processengineapi.task.TaskSubscriptionApi
+import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
 import io.camunda.client.CamundaClient
 import io.camunda.client.annotation.Deployment
 import io.camunda.client.lifecycle.CamundaClientLifecycleAware
@@ -27,10 +29,15 @@ import org.springframework.stereotype.Component
 class ProcessEngineConfiguration {
 
     @Bean
-    fun startProcessApi(camunda: CamundaClient): StartProcessApi = C8StartProcessApi(camunda)
+    fun subscriptionRepository(): SubscriptionRepository = InMemSubscriptionRepository()
 
     @Bean
-    fun subscriptionRepository(): SubscriptionRepository = InMemSubscriptionRepository()
+    fun startProcessApi(camunda: CamundaClient): StartProcessApi = C8StartProcessApi(camunda)
+
+    /** Completes in the caller's thread, so a rejected completion rolls back the caller's transaction. */
+    @Bean
+    fun userTaskCompletionApi(camunda: CamundaClient, subscriptions: SubscriptionRepository): UserTaskCompletionApi =
+        C8CamundaClientUserTaskCompletionApiImpl(camunda, subscriptions)
 
     @Bean
     fun taskSubscriptionApi(subscriptions: SubscriptionRepository): TaskSubscriptionApi =

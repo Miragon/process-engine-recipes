@@ -99,6 +99,12 @@
             <artifactId>camunda-process-test-spring</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- The process application in the tests completes its tasks the way the real ones do -->
+        <dependency>
+            <groupId>dev.bpm-crafters.process-engine-adapters</groupId>
+            <artifactId>process-engine-adapter-camunda-platform-c8-core</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility-kotlin</artifactId>

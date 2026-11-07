@@ -1,6 +1,6 @@
 package io.miragon.tasklist.payment.check
 
-import io.camunda.client.CamundaClient
+import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
 import io.miragon.tasklist.contract.CompletionOutcome
 import io.miragon.tasklist.contract.DomainConflict
 import io.miragon.tasklist.contract.provider.completeUserTask
@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class PaymentDecisions(
     private val payments: PaymentRepository,
-    private val camunda: CamundaClient,
+    private val userTasks: UserTaskCompletionApi,
 ) {
     /**
      * Stores the decision and completes the user task in one transaction. If Camunda refuses the completion
@@ -23,7 +23,7 @@ class PaymentDecisions(
     @Transactional
     fun record(userTaskKey: String, payment: Payment, decision: PaymentDecision): CompletionOutcome {
         if (!payments.decide(payment.id, decision)) throw DomainConflict("Payment ${payment.id} was decided already.")
-        return camunda.completeUserTask(
+        return userTasks.completeUserTask(
             userTaskKey,
             mapOf("paymentStatus" to decision.status.name, "rejectionReason" to decision.rejectionReason),
         )
