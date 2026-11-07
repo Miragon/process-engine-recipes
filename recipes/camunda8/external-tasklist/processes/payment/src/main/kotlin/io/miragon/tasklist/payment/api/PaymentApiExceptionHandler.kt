@@ -1,6 +1,6 @@
 package io.miragon.tasklist.payment.api
 
-import io.camunda.client.api.command.ClientException
+import io.miragon.tasklist.payment.engine.ProcessEngineRefused
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -12,8 +12,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 class PaymentApiExceptionHandler : ResponseEntityExceptionHandler() {
 
     /** The transaction of the request rolled back, so the caller may simply try again. */
-    @ExceptionHandler(ClientException::class)
-    fun camundaUnavailable(e: ClientException): ProblemDetail {
+    @ExceptionHandler(ProcessEngineRefused::class)
+    fun camundaUnavailable(e: ProcessEngineRefused): ProblemDetail {
         logger.warn("Camunda did not accept the start of a payment process", e)
         return ProblemDetail.forStatusAndDetail(
             HttpStatus.SERVICE_UNAVAILABLE,

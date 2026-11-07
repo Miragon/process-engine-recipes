@@ -6,9 +6,11 @@ import dev.bpmcrafters.processengineapi.adapter.c8.task.delivery.SubscribingServ
 import dev.bpmcrafters.processengineapi.adapter.c8.task.subscription.C8TaskSubscriptionApiImpl
 import dev.bpmcrafters.processengineapi.impl.task.InMemSubscriptionRepository
 import dev.bpmcrafters.processengineapi.impl.task.SubscriptionRepository
+import dev.bpmcrafters.processengineapi.process.StartProcessApi
 import dev.bpmcrafters.processengineapi.task.ServiceTaskCompletionApi
 import dev.bpmcrafters.processengineapi.task.TaskSubscriptionApi
 import io.camunda.client.CamundaClient
+import io.camunda.client.annotation.Deployment
 import io.camunda.client.lifecycle.CamundaClientLifecycleAware
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -21,7 +23,11 @@ import org.springframework.stereotype.Component
  * application that knows Camunda; everything else talks to the engine through the API.
  */
 @Configuration(proxyBeanMethods = false)
+@Deployment(resources = ["classpath*:/bpmn/*.bpmn"])
 class ProcessEngineConfiguration {
+
+    @Bean
+    fun startProcessApi(camunda: CamundaClient): StartProcessApi = C8StartProcessApi(camunda)
 
     @Bean
     fun subscriptionRepository(): SubscriptionRepository = InMemSubscriptionRepository()

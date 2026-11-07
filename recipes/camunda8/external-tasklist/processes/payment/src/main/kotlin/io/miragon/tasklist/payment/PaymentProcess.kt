@@ -1,6 +1,10 @@
 package io.miragon.tasklist.payment
 
-import io.camunda.client.CamundaClient
+import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.process.StartProcessApi
+import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionCmd
+import io.miragon.tasklist.payment.engine.ProcessEngineRefused
+import io.miragon.tasklist.payment.engine.await
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.stereotype.Component
 import java.time.Duration
@@ -18,17 +22,16 @@ data class PaymentProcessProperties(
 /** Starts `payment-process` (`bpmn/payment.bpmn`) for a payment. */
 @Component
 class PaymentProcess(
-    private val camunda: CamundaClient,
+    private val processes: StartProcessApi,
     private val properties: PaymentProcessProperties,
 ) {
-    /** Returns the key of the new process instance; throws if Camunda does not accept the start. */
+    /** Returns the key of the new process instance; throws [ProcessEngineRefused] if Camunda does not accept the start. */
     fun start(payment: Payment): Long =
-        camunda.newCreateInstanceCommand()
-            .bpmnProcessId(PROCESS_ID)
-            .latestVersion()
-            .businessId(payment.id)
-            .variables(
+        processes.startProcess(
+            StartProcessByDefinitionCmd(
+                PROCESS_ID,
                 mapOf(
+                    CommonRestrictions.BUSINESS_KEY to payment.id,
                     "paymentId" to payment.id,
                     "orderId" to payment.orderId,
                     "amount" to payment.amount,
@@ -37,9 +40,8 @@ class PaymentProcess(
                     "reminderAfter" to properties.reminderAfter.toString(),
                     "overdueAfter" to properties.overdueAfter.toString(),
                 ),
-            )
-            .send().join()
-            .processInstanceKey
+            ),
+        ).await().instanceId.toLong()
 
     companion object {
         const val PROCESS_ID = "payment-process"
