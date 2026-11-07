@@ -226,13 +226,15 @@ class OrderProcessTest(
     @Test
     fun `raises an incident when the payment application refuses the request`() {
         payments.refuseWith(HttpStatus.CONFLICT)
-        val (_, processInstanceKey) = placeOrder()
+        val (orderId, processInstanceKey) = placeOrder()
 
         assertThat(complete(openTask(processInstanceKey, "checkOrder"), sales, mapOf("approved" to true)).status).isEqualTo(204)
 
         assertThat(byKey(processInstanceKey)).hasActiveIncidents()
         val incident = camunda.newIncidentSearchRequest().filter { it.processInstanceKey(processInstanceKey) }.send().join().items().single()
-        assertThat(incident.errorMessage).contains("refused the payment request with 409", "The amount differs from the first request.")
+        // The incident comes at once, without retries, and shows the plain reason.
+        assertThat(incident.errorMessage).isEqualTo("The payment application refused the payment request with 409: The amount differs from the first request.")
+        assertThat(payments.requestsFor(orderId)).hasSize(1)
     }
 
     private fun placeOrder(): Pair<String, Long> {
