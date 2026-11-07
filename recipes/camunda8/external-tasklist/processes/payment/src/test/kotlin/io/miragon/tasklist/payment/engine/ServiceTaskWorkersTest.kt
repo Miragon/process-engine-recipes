@@ -52,6 +52,17 @@ class ServiceTaskWorkersTest {
     }
 
     @Test
+    fun `fails the job of a worker that is not done yet`() {
+        workers.register("unfinished", emptySet()) { TODO("Pack the parcel") }
+
+        deliver(retries = 3, type = "unfinished")
+
+        val failure = answers.single() as FailTaskCmd
+        assertThat(failure.reason).startsWith("kotlin.NotImplementedError: An operation is not implemented: Pack the parcel")
+        assertThat(failure.retryCount).isEqualTo(2)
+    }
+
+    @Test
     fun `leaves a job it cannot answer to its timeout`() {
         workers.register("pay", emptySet()) { emptyMap() }
         engineDown = true
@@ -59,7 +70,7 @@ class ServiceTaskWorkersTest {
         assertThatCode { deliver(retries = 3) }.doesNotThrowAnyException()
     }
 
-    /** Hands a job to the worker the way the adapter does: with its retries in the meta and the variables asked for. */
+    /** Hands a job to the worker the way ServiceTaskJobWorkers does: with its retries in the meta and the variables asked for. */
     private fun deliver(retries: Int, vararg variables: Pair<String, Any?>, type: String = "pay") =
         subscriptions.getTaskSubscriptions().single { it.taskDescriptionKey == type }
             .action.accept(TaskInformation("42", mapOf(TaskInformation.RETRIES to "$retries")), mapOf(*variables))
