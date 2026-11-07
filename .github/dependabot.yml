@@ -181,6 +181,9 @@ updates:
       # Camunda supports Elasticsearch 8.19+ and 9.4+; a new major needs Camunda's support first.
       - dependency-name: '*elasticsearch'
         update-types: ['version-update:semver-major']
+      # The services run on the Java LTS the recipe states (25); moving to another Java is a decision, not a bump.
+      - dependency-name: 'eclipse-temurin'
+        update-types: ['version-update:semver-major']
     groups:
       tasklist-stack-docker-compose:
         applies-to: version-updates
