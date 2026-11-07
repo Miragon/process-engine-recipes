@@ -43,7 +43,7 @@ The applications declare no listener and never call the task manager.
 
 Each application serves the provider API `/tasklist/v1` and checks the task manager's bearer token. The module `tasklist-contract` implements it: `@EnableTasklistProvider` and one `TaskFormHandler` per form version.
 
-![A process application: the provider API of tasklist-contract in front of one handler per form version, its own REST API and job workers; Camunda, its database and the payment API behind it](../images/process-application.png)
+![A process application: the provider API of tasklist-contract in front of one handler per form version, its own REST API and job workers; the Process Engine API to Camunda, its database and the payment API behind it](../images/process-application.png)
 
 | Call | Body → answer |
 | --- | --- |
@@ -56,6 +56,7 @@ Each application serves the provider API `/tasklist/v1` and checks the task mana
 
 - **`TaskContext`** comes from the projection and the signed-in user, never from the browser: keys, `formRef`, `businessId`, state, assignee, candidate groups and `user {id, groups}`. The application loads its entities by business ID and binds only the fields the form may change.
 - **Completion** belongs to the application: it validates, stores its change and completes the user task in one transaction. Camunda answers `204`: commit, `204`. `404`: roll back, `409`. Denied by a listener: roll back, `422`. `504` or no answer: commit, `202`. Unreachable: roll back, `503`.
+- **Engine access** goes through the [Process Engine API](https://github.com/bpm-crafters/process-engine-api) 1.7: `StartProcessApi`, `CorrelationApi`, service tasks with `TaskSubscriptionApi` and `ServiceTaskCompletionApi`, user tasks with `UserTaskCompletionApi` and `completeUserTask` from `tasklist-contract`. Only the package `engine.camunda` knows Camunda: it wires the core of the C8 adapter 2026.09.1 and adds a start that sets the business ID and a correlation that answers at once when no instance waits.
 - **Problems** are `application/problem+json` with a `code`: `BAD_REQUEST` (400), `UNAUTHORIZED` (401), `FORM_NOT_FOUND` (404), `DRAFT_NOT_SUPPORTED` (405), `TASK_NOT_ACTIVE` or `CONFLICT` (409), `VALIDATION_FAILED` (422), `UNAVAILABLE` (503). A `422` for invalid fields lists `errors: [{field, message}]` with dotted field paths; a listener's denial gives only its reason.
 - **Versions.** A form reference carries its version: an incompatible change adds `check-order@2`, and `@1` stays while instances use it. The provider API is versioned in its path, the [form protocol](../tasklist-contract/src/main/typescript/PROTOCOL.md) of HTML forms in its messages.
 
@@ -68,6 +69,7 @@ The services call each other over REST with OpenAPI ([`api/`](api)), never throu
 - **Global user task listener** `taskmanager-projection`: all events, after the listeners of the models, lowest priority, 10 retries with growing backoff, then an incident. The task manager registers it at startup and reports `DOWN` until then; the listener's handler only writes the projection.
 - **Projection** `user_task` with the history `user_task_event`. Each listener event is one upsert guarded by `last_job_key`: redeliveries and late jobs change nothing, and a task the listener closed never reopens; the next listener event corrects one the reconciler closed. Apart from `subject` and the business ID, no variables, form or domain data are stored.
 - **Tasklist API** `/api` ([OpenAPI](api/taskmanager.json)): tasks with filters and facets, claim, unclaim, update, form, draft, completion, start forms, frames, and server-sent events `task-changed {userTaskKey, state, domain}` without IDs to resume from. The user is `X-Demo-User`. Candidates claim and update (everyone, if the task names none); only the assignee unclaims, saves drafts and completes, and everyone else gets the form read-only. Commands return after Camunda ran the listeners, so the projection is current when the answer arrives.
+- **Camunda** stays a direct dependency of the task manager, in its package `camunda` behind the ports `TaskCommands`, `EngineUserTasks` and `ProcessModels`: the Process Engine API has no blocking listener with job keys, no claim and no search.
 - **Reconciler**, every 30 s: closes tasks Camunda reports as closed, and after 30 min tasks its search no longer knows; once after startup it inserts tasks created before the listener existed; it fills in missing names and form references.
 
 | Trigger | Listener event | Projection |
@@ -105,6 +107,7 @@ A process start or correlation commits only if Camunda accepted it, a completion
 | A projection in the task manager for filters, routing and history | Camunda's search on every request |
 | Forms, validation and completion stay with the application | Camunda Forms rendered by the tasklist |
 | The task manager is the browser's only backend, so the `TaskContext` comes only from it | forms loaded from each application |
+| The Process Engine API in the applications; only `engine.camunda` knows Camunda | the Camunda client in every class |
 | REST with OpenAPI between services | Camunda messages across services, Kafka |
 | A static registry of applications | self-registration |
 
