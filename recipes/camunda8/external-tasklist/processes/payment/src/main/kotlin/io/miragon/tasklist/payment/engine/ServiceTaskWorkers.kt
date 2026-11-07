@@ -36,8 +36,8 @@ class RetryLater(message: String, val backoff: Duration) : RuntimeException(mess
 /**
  * Runs the workers of service tasks on the Process Engine API and answers their jobs the way Camunda's `@JobWorker`
  * does: the returned variables complete the job, [IncidentRequired] fails it without retries, [RetryLater] with one
- * retry less after its backoff, and any other exception with one retry less right away. The message, or the stack
- * trace of an unexpected exception, becomes the error message an incident shows.
+ * retry less after its backoff, and anything else it throws with one retry less right away. The message, or the stack
+ * trace of an unexpected failure, becomes the error message an incident shows.
  */
 @Component
 class ServiceTaskWorkers(
@@ -60,18 +60,18 @@ class ServiceTaskWorkers(
         ).join()
     }
 
-    /** Never throws: the adapter would fail the job with a fixed backoff and without a message. */
+    /** Answers every job, also when its worker fails with an `Error` such as Kotlin's `TODO()`. */
     private fun answer(job: ServiceTask, worker: (ServiceTask) -> Map<String, Any?>) {
         val variables = try {
             worker(job)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             send(job) { jobs.failTask(failure(job, e)) }
             return
         }
         send(job) { jobs.completeTask(CompleteTaskCmd(job.id, variables)) }
     }
 
-    private fun failure(job: ServiceTask, e: Exception): FailTaskCmd = when (e) {
+    private fun failure(job: ServiceTask, e: Throwable): FailTaskCmd = when (e) {
         is IncidentRequired -> FailTaskCmd(job.id, e.message.orEmpty(), null, 0, Duration.ZERO)
         is RetryLater -> FailTaskCmd(job.id, e.message.orEmpty(), null, job.retries - 1, e.backoff)
         else -> {
