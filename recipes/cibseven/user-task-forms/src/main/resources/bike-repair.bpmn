@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_RepairBike" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:process id="bikeRepair" name="Repair bike" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="bikeBroughtIn" name="Bike brought in">
+      <bpmn:outgoing>Flow_BikeBroughtInToCheckInBike</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="checkInBike" name="Check in bike">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="frameNumber" label="Frame number" type="string">
+            <camunda:validation>
+              <camunda:constraint name="required" />
+            </camunda:validation>
+          </camunda:formField>
+          <camunda:formField id="issueDescription" label="Issue description" type="string" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_BikeBroughtInToCheckInBike</bpmn:incoming>
+      <bpmn:outgoing>Flow_CheckInBikeToDiagnoseBike</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="diagnoseBike" name="Diagnose bike" camunda:formRef="diagnoseBike" camunda:formRefBinding="deployment">
+      <bpmn:incoming>Flow_CheckInBikeToDiagnoseBike</bpmn:incoming>
+      <bpmn:outgoing>Flow_DiagnoseBikeToRepairBike</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="repairBike" name="Repair bike">
+      <bpmn:incoming>Flow_DiagnoseBikeToRepairBike</bpmn:incoming>
+      <bpmn:outgoing>Flow_RepairBikeToCheckRepairQuality</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="checkRepairQuality" name="Check repair quality" camunda:formKey="embedded:deployment:forms/check-repair-quality.html">
+      <bpmn:incoming>Flow_RepairBikeToCheckRepairQuality</bpmn:incoming>
+      <bpmn:outgoing>Flow_CheckRepairQualityToChoosePickupSlot</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="choosePickupSlot" name="Choose pickup slot" camunda:formKey="miravelo:choose-pickup-slot">
+      <bpmn:incoming>Flow_CheckRepairQualityToChoosePickupSlot</bpmn:incoming>
+      <bpmn:outgoing>Flow_ChoosePickupSlotToBikeReadyForPickup</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="bikeReadyForPickup" name="Bike ready for pickup">
+      <bpmn:incoming>Flow_ChoosePickupSlotToBikeReadyForPickup</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_ChoosePickupSlotToBikeReadyForPickup" sourceRef="choosePickupSlot" targetRef="bikeReadyForPickup" />
+    <bpmn:sequenceFlow id="Flow_CheckRepairQualityToChoosePickupSlot" sourceRef="checkRepairQuality" targetRef="choosePickupSlot" />
+    <bpmn:sequenceFlow id="Flow_RepairBikeToCheckRepairQuality" sourceRef="repairBike" targetRef="checkRepairQuality" />
+    <bpmn:sequenceFlow id="Flow_DiagnoseBikeToRepairBike" sourceRef="diagnoseBike" targetRef="repairBike" />
+    <bpmn:sequenceFlow id="Flow_CheckInBikeToDiagnoseBike" sourceRef="checkInBike" targetRef="diagnoseBike" />
+    <bpmn:sequenceFlow id="Flow_BikeBroughtInToCheckInBike" sourceRef="bikeBroughtIn" targetRef="checkInBike" />
+    <bpmn:textAnnotation id="checkInBikeFormType">
+      <bpmn:text>Generated Task Forms:
+Tasklist renders camunda:formData</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_CheckInBikeFormTypeToCheckInBike" sourceRef="checkInBikeFormType" targetRef="checkInBike" />
+    <bpmn:textAnnotation id="diagnoseBikeFormType">
+      <bpmn:text>Camunda Forms:
+Tasklist renders diagnose-bike.form</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_DiagnoseBikeFormTypeToDiagnoseBike" sourceRef="diagnoseBikeFormType" targetRef="diagnoseBike" />
+    <bpmn:textAnnotation id="repairBikeFormType">
+      <bpmn:text>&lt;none&gt;:
+mini frontend finds the form by task id</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="checkRepairQualityFormType">
+      <bpmn:text>Embedded:
+Tasklist loads check-repair-quality.html</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_CheckRepairQualityFormTypeToCheckRepair" sourceRef="checkRepairQualityFormType" targetRef="checkRepairQuality" />
+    <bpmn:textAnnotation id="choosePickupSlotFormType">
+      <bpmn:text>External:
+mini frontend finds the form by form key</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_ChoosePickupSlotFormTypeToChoosePickup" sourceRef="choosePickupSlotFormType" targetRef="choosePickupSlot" />
+    <bpmn:association id="Association_RepairBikeFormTypeToRepairBike" sourceRef="repairBikeFormType" targetRef="repairBike" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Process_RepairBike">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_RepairBike" bpmnElement="bikeRepair">
+      <bpmndi:BPMNShape id="BPMNShape_bikeBroughtIn" bpmnElement="bikeBroughtIn">
+        <dc:Bounds x="80" y="202" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="57" y="244" width="82" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_checkInBike" bpmnElement="checkInBike">
+        <dc:Bounds x="176" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_diagnoseBike" bpmnElement="diagnoseBike">
+        <dc:Bounds x="336" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_repairBike" bpmnElement="repairBike">
+        <dc:Bounds x="496" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_checkRepairQuality" bpmnElement="checkRepairQuality">
+        <dc:Bounds x="656" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_choosePickupSlot" bpmnElement="choosePickupSlot">
+        <dc:Bounds x="816" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_bikeReadyForPickup" bpmnElement="bikeReadyForPickup">
+        <dc:Bounds x="976" y="202" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="953" y="244" width="82" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ChoosePickupSlotToBikeReadyForPickup" bpmnElement="Flow_ChoosePickupSlotToBikeReadyForPickup">
+        <di:waypoint x="916" y="220" />
+        <di:waypoint x="976" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_CheckRepairQualityToChoosePickupSlot" bpmnElement="Flow_CheckRepairQualityToChoosePickupSlot">
+        <di:waypoint x="756" y="220" />
+        <di:waypoint x="816" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_RepairBikeToCheckRepairQuality" bpmnElement="Flow_RepairBikeToCheckRepairQuality">
+        <di:waypoint x="596" y="220" />
+        <di:waypoint x="656" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_DiagnoseBikeToRepairBike" bpmnElement="Flow_DiagnoseBikeToRepairBike">
+        <di:waypoint x="436" y="220" />
+        <di:waypoint x="496" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_CheckInBikeToDiagnoseBike" bpmnElement="Flow_CheckInBikeToDiagnoseBike">
+        <di:waypoint x="276" y="220" />
+        <di:waypoint x="336" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_BikeBroughtInToCheckInBike" bpmnElement="Flow_BikeBroughtInToCheckInBike">
+        <di:waypoint x="116" y="220" />
+        <di:waypoint x="176" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="BPMNShape_checkInBikeFormType" bpmnElement="checkInBikeFormType">
+        <dc:Bounds x="76" y="60" width="300" height="40" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Association_CheckInBikeFormTypeToCheckInBike" bpmnElement="Association_CheckInBikeFormTypeToCheckInBike">
+        <di:waypoint x="226" y="100" />
+        <di:waypoint x="226" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="BPMNShape_diagnoseBikeFormType" bpmnElement="diagnoseBikeFormType">
+        <dc:Bounds x="236" y="340" width="300" height="40" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Association_DiagnoseBikeFormTypeToDiagnoseBike" bpmnElement="Association_DiagnoseBikeFormTypeToDiagnoseBike">
+        <di:waypoint x="386" y="340" />
+        <di:waypoint x="386" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="BPMNShape_repairBikeFormType" bpmnElement="repairBikeFormType">
+        <dc:Bounds x="396" y="60" width="300" height="40" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_checkRepairQualityFormType" bpmnElement="checkRepairQualityFormType">
+        <dc:Bounds x="556" y="340" width="300" height="40" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Association_CheckRepairQualityFormTypeToCheckRepair" bpmnElement="Association_CheckRepairQualityFormTypeToCheckRepair">
+        <di:waypoint x="706" y="340" />
+        <di:waypoint x="706" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="BPMNShape_choosePickupSlotFormType" bpmnElement="choosePickupSlotFormType">
+        <dc:Bounds x="716" y="60" width="300" height="40" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Association_ChoosePickupSlotFormTypeToChoosePickup" bpmnElement="Association_ChoosePickupSlotFormTypeToChoosePickup">
+        <di:waypoint x="866" y="100" />
+        <di:waypoint x="866" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Association_RepairBikeFormTypeToRepairBike" bpmnElement="Association_RepairBikeFormTypeToRepairBike">
+        <di:waypoint x="546" y="100" />
+        <di:waypoint x="546" y="180" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

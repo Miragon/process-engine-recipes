@@ -19,6 +19,7 @@ Most engine material shows how to use an engine. The harder questions come later
 | --- | --- | --- | --- |
 | Single sign-on for the web applications | [`camunda7-cockpit-sso`](recipes/camunda7/cockpit-sso/README.md) | Camunda 7.24 | Java |
 | One cockpit for the engines of several services | [`cibseven-multi-engine-cockpit`](recipes/cibseven/multi-engine-cockpit/README.md) | CIB seven 2.2 | Java |
+| Every user task form type side by side | [`cibseven-user-task-forms`](recipes/cibseven/user-task-forms/README.md) | CIB seven 2.2 | Java |
 | Your own tasklist via a Zeebe exporter | [`zeebe-external-tasklist`](recipes/camunda8/external-tasklist/README.md) | Camunda 8.5 | Kotlin |
 
 Looking for an older showcase? They are preserved at the tag [`archive/showcases-2026`](https://github.com/Miragon/process-engine-recipes/tree/archive/showcases-2026).

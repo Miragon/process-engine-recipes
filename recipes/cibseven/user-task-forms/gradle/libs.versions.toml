@@ -1,0 +1,16 @@
+[versions]
+spring-boot = "4.1.2"
+cibseven = "2.2.0"
+
+[libraries]
+spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
+spring-boot-starter-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+cibseven-bom = { module = "org.cibseven.bpm:cibseven-bom", version.ref = "cibseven" }
+cibseven-starter-webapp = { module = "org.cibseven.bpm.springboot:cibseven-bpm-spring-boot-starter-webapp-4" }
+cibseven-starter-rest = { module = "org.cibseven.bpm.springboot:cibseven-bpm-spring-boot-starter-rest-4" }
+cibseven-bpm-assert = { module = "org.cibseven.bpm:cibseven-bpm-assert" }
+h2 = { module = "com.h2database:h2" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
