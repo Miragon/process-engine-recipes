@@ -1,7 +1,6 @@
 package io.miragon.tasklist.payment
 
 import io.camunda.client.CamundaClient
-import io.camunda.client.api.command.ClientException
 import io.camunda.client.api.search.response.UserTask
 import io.camunda.process.test.api.CamundaAssert.assertThatProcessInstance
 import io.camunda.process.test.api.CamundaAssert.assertThatUserTask
@@ -13,6 +12,7 @@ import io.miragon.tasklist.contract.TaskContext
 import io.miragon.tasklist.contract.TaskState
 import io.miragon.tasklist.contract.TaskSubmission
 import io.miragon.tasklist.contract.UserContext
+import io.miragon.tasklist.payment.engine.ProcessEngineRefused
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -114,7 +114,7 @@ class PaymentProcessTest {
             .expectStatus().isNotFound()
             .expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
 
-        doThrow(ClientException("Camunda is not available")).`when`(process).start(anyPayment())
+        doThrow(ProcessEngineRefused(IllegalStateException("Camunda is not available"))).`when`(process).start(anyPayment())
         requestPayment("ORD-1002")
             .expectStatus().isEqualTo(503)
             .expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
@@ -135,6 +135,8 @@ class PaymentProcessTest {
         assertThat(task.customHeaders).containsEntry("domain", "payment")
         assertThat(task.externalFormReference).isEqualTo("check-payment@1")
         assertThat(task.businessId).isEqualTo(payment.id)
+        val variables = camunda.newVariableSearchRequest().filter { it.processInstanceKey(payment.processInstanceKey) }.send().join().items()
+        assertThat(variables.map { it.name }).describedAs("the business key is no variable").doesNotContain("businessKey")
 
         openForm(task, assignee = "anna")
             .expectStatus().isOk()

@@ -1,6 +1,6 @@
 package io.miragon.tasklist.order.checking
 
-import io.camunda.client.CamundaClient
+import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
 import io.miragon.tasklist.contract.CompletionOutcome
 import io.miragon.tasklist.contract.FormKind
 import io.miragon.tasklist.contract.HtmlFormView
@@ -56,7 +56,7 @@ data class OrderSummary(
 @Component
 class CheckOrderForm(
     private val orders: OrderRepository,
-    private val camunda: CamundaClient,
+    private val userTasks: UserTaskCompletionApi,
 ) : TaskFormHandler<CheckOrderDecision> {
 
     override val formRef = "check-order@1"
@@ -82,6 +82,6 @@ class CheckOrderForm(
         // A customer cancellation interrupts this task; Camunda would answer 404 for the completion anyway.
         if (order.status != OrderStatus.CHECKING) throw TaskNotActive("Order ${order.id} is no longer being checked.")
         orders.recordCheck(order.id, if (approved) OrderStatus.AWAITING_PAYMENT else OrderStatus.DECLINED, comment)
-        return camunda.completeUserTask(context.userTaskKey, mapOf("approved" to approved))
+        return userTasks.completeUserTask(context.userTaskKey, mapOf("approved" to approved))
     }
 }

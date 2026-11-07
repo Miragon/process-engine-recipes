@@ -1,9 +1,7 @@
 package io.miragon.tasklist.taskmanager.api
 
-import io.camunda.client.CamundaClient
-import io.camunda.client.api.command.ClientHttpException
+import io.miragon.tasklist.taskmanager.projection.EngineUserTasks
 import io.miragon.tasklist.taskmanager.projection.ProcessDefinitions
-import io.miragon.tasklist.taskmanager.projection.TaskDetails
 import io.miragon.tasklist.taskmanager.projection.TaskRepository
 import io.miragon.tasklist.taskmanager.projection.UserTaskRow
 import org.springframework.stereotype.Component
@@ -17,7 +15,7 @@ import java.time.Duration
 class FormRefs(
     private val tasks: TaskRepository,
     private val definitions: ProcessDefinitions,
-    private val camunda: CamundaClient,
+    private val engineTasks: EngineUserTasks,
 ) {
     fun of(task: UserTaskRow): String =
         task.formRef ?: resolve(task)
@@ -28,7 +26,7 @@ class FormRefs(
             ?.takeIf { it.formRef != null }
             ?.let { tasks.fillDetails(task.userTaskKey, it); return it.formRef }
         repeat(3) { attempt ->
-            fetch(task.userTaskKey)?.takeIf { it.formRef != null }?.let {
+            engineTasks.find(task.userTaskKey)?.details?.takeIf { it.formRef != null }?.let {
                 tasks.fillDetails(task.userTaskKey, it)
                 return it.formRef
             }
@@ -36,12 +34,4 @@ class FormRefs(
         }
         return null
     }
-
-    fun fetch(userTaskKey: Long): TaskDetails? =
-        try {
-            val task = camunda.newUserTaskGetRequest(userTaskKey).send().join()
-            TaskDetails(task.name, task.processName, task.externalFormReference)
-        } catch (e: ClientHttpException) {
-            if (e.code() == 404) null else throw e
-        }
 }

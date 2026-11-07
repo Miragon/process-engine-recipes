@@ -1,6 +1,7 @@
 package io.miragon.tasklist.contract.provider
 
-import io.camunda.client.CamundaClient
+import dev.bpmcrafters.processengineapi.task.CompleteTaskCmd
+import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
 import io.camunda.client.api.command.ClientException
 import io.camunda.client.api.command.ClientHttpException
 import io.camunda.client.api.command.ProblemException
@@ -16,7 +17,8 @@ import java.net.UnknownHostException
 private val DENIAL = Regex("""Reason to deny: '(.*)'""", RegexOption.DOT_MATCHES_ALL)
 
 /**
- * Completes a user task and translates Camunda's answer into the tasklist contract.
+ * Completes a user task through the Process Engine API and translates Camunda's answer into the tasklist contract.
+ * The API defines no errors of its own, so the answer comes from the Camunda exception that the C8 adapter passes on.
  *
  * Call it inside the transaction that stores the domain change, so a rejected completion rolls it back:
  * - 404: the task is gone (completed, canceled by an event or by its process) → [TaskNotActive]
@@ -25,12 +27,13 @@ private val DENIAL = Regex("""Reason to deny: '(.*)'""", RegexOption.DOT_MATCHES
  *   never left, so nothing happened and the change rolls back
  * - 504, or no answer after the request went out: Camunda may still complete the task → [CompletionOutcome.PENDING]
  */
-fun CamundaClient.completeUserTask(userTaskKey: String, variables: Map<String, Any?> = emptyMap()): CompletionOutcome =
+fun UserTaskCompletionApi.completeUserTask(userTaskKey: String, variables: Map<String, Any?> = emptyMap()): CompletionOutcome =
     try {
-        newCompleteUserTaskCommand(userTaskKey.toLong()).variables(variables).send().join()
+        completeTask(CompleteTaskCmd(userTaskKey, variables)).join()
         CompletionOutcome.COMPLETED
-    } catch (e: ClientException) {
-        completionOutcome(e)
+    } catch (e: RuntimeException) {
+        // The C8 adapter throws Camunda's exception right away; an adapter that answers later fails the future with it.
+        completionOutcome(e.causes().filterIsInstance<ClientException>().firstOrNull() ?: throw e)
     }
 
 /** What a failed user task command means for the tasklist; throws for the answers that are errors. */

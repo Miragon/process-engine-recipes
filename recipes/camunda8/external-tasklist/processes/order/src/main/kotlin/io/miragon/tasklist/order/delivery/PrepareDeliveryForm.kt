@@ -1,6 +1,6 @@
 package io.miragon.tasklist.order.delivery
 
-import io.camunda.client.CamundaClient
+import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
 import io.miragon.tasklist.contract.CompletionOutcome
 import io.miragon.tasklist.contract.FieldError
 import io.miragon.tasklist.contract.FormKind
@@ -34,7 +34,7 @@ data class DeliveryPreparation(
 @Component
 class PrepareDeliveryForm(
     private val orders: OrderRepository,
-    private val camunda: CamundaClient,
+    private val userTasks: UserTaskCompletionApi,
 ) : TaskFormHandler<DeliveryPreparation> {
 
     override val formRef = "prepare-delivery@1"
@@ -85,7 +85,7 @@ class PrepareDeliveryForm(
         if (errors.isNotEmpty()) throw ValidationFailed("The delivery is not ready yet.", errors)
 
         orders.recordDelivery(order.id, ready, shippingDate, note(submission))
-        return camunda.completeUserTask(context.userTaskKey)
+        return userTasks.completeUserTask(context.userTaskKey)
     }
 
     private fun preparing(context: TaskContext): Order =

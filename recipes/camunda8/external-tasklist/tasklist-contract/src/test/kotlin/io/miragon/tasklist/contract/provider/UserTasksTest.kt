@@ -1,5 +1,9 @@
 package io.miragon.tasklist.contract.provider
 
+import dev.bpmcrafters.processengineapi.Empty
+import dev.bpmcrafters.processengineapi.task.CompleteTaskByErrorCmd
+import dev.bpmcrafters.processengineapi.task.CompleteTaskCmd
+import dev.bpmcrafters.processengineapi.task.UserTaskCompletionApi
 import io.camunda.client.api.ProblemDetail
 import io.camunda.client.api.command.ClientException
 import io.camunda.client.api.command.ProblemException
@@ -15,6 +19,7 @@ import java.net.ConnectException
 import java.net.NoRouteToHostException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeoutException
 
 class UserTasksTest {
@@ -52,6 +57,23 @@ class UserTasksTest {
         val error = problem(500, "boom")
         assertThatThrownBy { completionOutcome(error) }.isSameAs(error)
     }
+
+    @Test
+    fun `reads Camunda's answer however the engine adapter reports it`() {
+        assertThat(completeThrough { CompletableFuture.completedFuture(Empty) }).isEqualTo(CompletionOutcome.COMPLETED)
+        // The C8 adapter sends the command in the caller's thread and throws Camunda's exception ...
+        assertThatThrownBy { completeThrough { throw problem(404, "no such user task") } }.isInstanceOf(TaskNotActive::class.java)
+        // ... an adapter that sends it later fails the future with it.
+        assertThat(completeThrough { CompletableFuture.failedFuture(problem(504, "timed out")) }).isEqualTo(CompletionOutcome.PENDING)
+        val noKey = NumberFormatException("For input string: \"x\"")
+        assertThatThrownBy { completeThrough { throw noKey } }.isSameAs(noKey)
+    }
+
+    private fun completeThrough(answer: () -> CompletableFuture<Empty>) =
+        object : UserTaskCompletionApi {
+            override fun completeTask(cmd: CompleteTaskCmd) = answer()
+            override fun completeTaskByError(cmd: CompleteTaskByErrorCmd) = throw UnsupportedOperationException()
+        }.completeUserTask("1")
 
     private fun problem(status: Int, detail: String) =
         ProblemException(status, "HTTP $status", ProblemDetail().setStatus(status).setDetail(detail))

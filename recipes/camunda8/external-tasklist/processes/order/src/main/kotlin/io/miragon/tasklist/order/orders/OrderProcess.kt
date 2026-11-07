@@ -1,7 +1,10 @@
 package io.miragon.tasklist.order.orders
 
-import io.camunda.client.CamundaClient
-import io.camunda.client.api.command.ClientHttpException
+import dev.bpmcrafters.processengineapi.correlation.CorrelateMessageCmd
+import dev.bpmcrafters.processengineapi.correlation.Correlation
+import dev.bpmcrafters.processengineapi.correlation.CorrelationApi
+import io.miragon.tasklist.order.engine.NoMessageSubscription
+import io.miragon.tasklist.order.engine.await
 
 /** Names from `order.bpmn` that the code refers to. */
 object OrderProcess {
@@ -14,18 +17,13 @@ object OrderProcess {
 /**
  * Correlates a message to the order process that waits for it with the order number as correlation key.
  *
- * Unlike publishing, correlating tells right away whether an instance was waiting: Camunda answers 404 if none
- * was, and this returns false. The application never sends messages to the processes of other applications.
+ * Unlike publishing, correlating tells right away whether an instance was waiting; if none was, this returns false.
+ * The application never sends messages to the processes of other applications.
  */
-fun CamundaClient.correlateToOrder(messageName: String, orderId: String, variables: Map<String, Any?> = emptyMap()): Boolean =
+fun CorrelationApi.correlateToOrder(messageName: String, orderId: String, variables: Map<String, Any?> = emptyMap()): Boolean =
     try {
-        newCorrelateMessageCommand()
-            .messageName(messageName)
-            .correlationKey(orderId)
-            .variables(variables)
-            .send()
-            .join()
+        correlateMessage(CorrelateMessageCmd(messageName, variables, Correlation.withKey(orderId))).await()
         true
-    } catch (e: ClientHttpException) {
-        if (e.code() == 404) false else throw e
+    } catch (e: NoMessageSubscription) {
+        false
     }

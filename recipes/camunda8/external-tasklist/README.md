@@ -15,6 +15,8 @@ You run several process applications on one Camunda 8 cluster, each with its own
 | PostgreSQL | 18.6 |
 | Spring Boot | 4.1.2 |
 | Kotlin | 2.4.21 |
+| Process Engine API (bpm-crafters) | 1.7 |
+| Process Engine API adapter for Camunda 8, core | 2026.09.1 |
 | Java | 25 |
 | Node.js (downloaded by the build) | 26.13.0 |
 | React (tasklist, micro-frontend of the order application) | 19.3 |
@@ -48,7 +50,7 @@ You need a JDK 25 and Docker or Podman with Compose and about 6 GB of memory for
 | [`e2e/`](e2e) | Playwright specs that `./e2e.sh` runs against the stack: `api/` against the services, `ui/` in Chromium against the tasklist |
 | [`docs/`](docs) | [Architecture and contracts](docs/architecture.md), [OpenAPI documents](docs/api), the [design of the tasklist](docs/design/decision.md) and the [history](docs/history) of the recipe |
 
-The order and payment applications talk to each other only through their REST APIs (`POST /api/v1/payments` with a callback URL, `POST /api/v1/orders/{id}/payment-result`). Each correlates Camunda messages only into its own process.
+The order and payment applications talk to each other only through their REST APIs (`POST /api/v1/payments` with a callback URL, `POST /api/v1/orders/{id}/payment-result`). Each correlates Camunda messages only into its own process. They reach Camunda through the [Process Engine API](https://github.com/bpm-crafters/process-engine-api): they start processes, correlate messages, work on service tasks and complete user tasks with its interfaces, and only their package `engine.camunda` knows Camunda.
 
 ## Cook it
 
@@ -138,7 +140,7 @@ Set `KEEP_STACK=1` to keep the stack running after the test, and `UPDATE_SCREENS
 **Join the tasklist with another process application:**
 
 1. Model the user tasks along the [BPMN conventions](docs/architecture.md#contract-of-a-process-application): `externalReference` with a versioned form reference, the task header `domain`, the `businessId` of the instance and an optional `subject` variable.
-2. Add `io.miragon.recipes:tasklist-contract`, put `@EnableTasklistProvider` on the application and write one `TaskFormHandler` per form version (and a `StartFormHandler` per start form). Set `tasklist.provider.token`; if it serves HTML forms, also set `tasklist.provider.frame-bundle`. Keep `camunda.client.request-timeout` above Camunda's 15 s (the recipe uses `20s`), so a slow listener chain arrives as `504` and the completion answers `202`.
+2. Add `io.miragon.recipes:tasklist-contract`, put `@EnableTasklistProvider` on the application and write one `TaskFormHandler` per form version (and a `StartFormHandler` per start form). Complete tasks with `completeUserTask` from the contract on a `UserTaskCompletionApi`; `engine/camunda` of either application shows how to wire the C8 adapter. Set `tasklist.provider.token`; if it serves HTML forms, also set `tasklist.provider.frame-bundle`. Keep `camunda.client.request-timeout` above Camunda's 15 s (the recipe uses `20s`), so a slow listener chain arrives as `504` and the completion answers `202`.
 3. Register it in the task manager: `taskmanager.applications.<domain>.label`, `.base-url` and `.token`.
 
 **Configuration of the task manager** (`taskmanager/src/main/resources/application.yaml`):
@@ -157,6 +159,9 @@ Set `KEEP_STACK=1` to keep the stack running after the test, and `UPDATE_SCREENS
 - **Every user task in the cluster waits for the task manager.** The listener blocks each transition until its job is completed. While the task manager is down, tasks stay in `CREATING`, `ASSIGNING`, `COMPLETING` or `CANCELING`, and REST commands answer `504` after 15 s. Nothing is lost: the waiting jobs are handled when it is back. A listener job that fails (the database restarts, say) waits 2 s, 4 s and so on up to a minute before the next attempt; after 10 attempts it raises an incident, which you resolve in Operate. Keep the listener handler to one database write: this one looks up names in a cache, loads unknown BPMN in the background and pushes server-sent events from its own threads.
 - **A process instance modification does not trigger `canceling`.** Camunda skips user task listeners when a modification terminates a task. The reconciler closes such tasks after about `interval` + `lag` (with more than `batch-size` open tasks, after a few rounds), and a completion attempt finds them gone at once.
 - **Camunda's search is eventually consistent.** User task details, BPMN XML and even `GET /v2/global-task-listeners/{id}` lag about a second behind. The task manager reads the listener jobs instead, treats `409` on registration as "already registered", and only the reconciler reads the search.
+- **The applications use the Process Engine API, the task manager does not.** The C8 adapter's listener delivery completes `completing` and `canceling` jobs before its callback runs and reports no job key, business ID or task headers; the adapter does not implement claim and unclaim, and the API has no search. So the task manager keeps the Camunda client, behind three ports.
+- **The adapter 2026.09.1 drops the business key on start and publishes messages instead of correlating them.** A published message waits an hour for an instance, so an early payment result would be stored instead of getting `503`. The applications bring their own `C8StartProcessApi` and `C8CorrelationApi` until the adapter does both.
+- **The adapter's core is wired by hand, without its Spring Boot starter.** The starter opens the job workers once from an asynchronous startup listener, outside the client lifecycle that Camunda Process Test drives per test, and it turns on scheduling for the whole application. `ServiceTaskWorkerLifecycle` opens the workers whenever a Camunda client starts. `process-engine-worker` and its `@ProcessEngineWorker` are built on Spring Boot 3.5, so the applications use a small `ServiceTaskWorkers` helper. It answers every job itself, because an exception that reaches the adapter fails the job with a fixed 5 s backoff and without a message.
 - **`@JobWorker(type = "${...}")` does not resolve placeholders.** The listener's job type is a constant, `taskmanager.projection`.
 - **Camunda Process Test purges the cluster before every test**, the global listener included, and starts the keys over. The task manager's integration test registers the listener again and empties the projection in `@BeforeEach`.
 - **Camunda keys exceed JavaScript's safe integers.** Every API of the recipe sends keys as strings.
@@ -174,6 +179,7 @@ Set `KEEP_STACK=1` to keep the stack running after the test, and `UPDATE_SCREENS
 | Instead of | You could | Better when |
 | --- | --- | --- |
 | Forms owned by the applications | Camunda Forms (`zeebe:formDefinition formId`, `bindingType="deployment"`) rendered by the tasklist with form-js, fetched with `GET /v2/user-tasks/{key}/form` | Forms are simple and domain checks fit into a `completing` listener that denies with a reason |
+| The Process Engine API in the applications | The Camunda client (`CamundaClient`, `@JobWorker`) | You stay on Camunda 8 and want its whole API, such as job lease tokens and business IDs, without adapter code |
 | A global user task listener | A custom exporter that streams `USER_TASK` records | You run self-managed only and must not block task transitions; you then handle duplicates and lag yourself |
 | A global user task listener | Polling `POST /v2/user-tasks/search` | Few tasks and no need to see cancellations as events |
 | REST between the services | An event bus such as Kafka | The services must not depend on each other being up |
