@@ -2,3 +2,4 @@
 /recipes/camunda7/cockpit-sso/ @emaarco
 /recipes/camunda8/external-tasklist/ @peterhnm @Hafflgav
 /recipes/cibseven/multi-engine-cockpit/ @emaarco
+/recipes/cibseven/user-task-forms/ @emaarco

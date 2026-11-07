@@ -226,3 +226,66 @@ updates:
       multi-engine-cockpit-npm-security:
         applies-to: security-updates
         patterns: ['*']
+
+  - package-ecosystem: 'gradle'
+    directory: '/recipes/cibseven/user-task-forms'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+      - 'recipe:cibseven-user-task-forms'
+    rebase-strategy: 'auto'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    cooldown:
+      default-days: 7
+    groups:
+      user-task-forms-gradle:
+        applies-to: version-updates
+        patterns: ['*']
+      user-task-forms-gradle-security:
+        applies-to: security-updates
+        patterns: ['*']
+
+  - package-ecosystem: 'npm'
+    directory: '/recipes/cibseven/user-task-forms/frontend'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+      - 'recipe:cibseven-user-task-forms'
+    rebase-strategy: 'auto'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    cooldown:
+      default-days: 7
+    groups:
+      user-task-forms-frontend-npm:
+        applies-to: version-updates
+        patterns: ['*']
+      user-task-forms-frontend-npm-security:
+        applies-to: security-updates
+        patterns: ['*']
+
+  - package-ecosystem: 'npm'
+    directory: '/recipes/cibseven/user-task-forms/e2e'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+      - 'recipe:cibseven-user-task-forms'
+    rebase-strategy: 'auto'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    cooldown:
+      default-days: 7
+    groups:
+      user-task-forms-e2e-npm:
+        applies-to: version-updates
+        patterns: ['*']
+      user-task-forms-e2e-npm-security:
+        applies-to: security-updates
+        patterns: ['*']

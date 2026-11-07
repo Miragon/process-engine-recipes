@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: workshop-service
+  datasource:
+    url: jdbc:h2:mem:workshop
+
+camunda:
+  bpm:
+    admin-user:
+      id: demo
+      password: demo
+    filter:
+      create: All tasks
+
+cibseven:
+  webclient:
+    engineRest:
+      url: http://localhost:${server.port:8080}
+    authentication:
+      jwtSecret: j4pamSmEISOUvJ7y5D/So/s4zBw4gi0a54nlT2e04QbJSSWN4a/WdwMfCIRo31QZUbUZz0lhAz/mIOi6tg/GEPAMhJxoLc7FqVd0J0c33nilb0w0FqZ2wl6mY4CswBIv9C88ReArNsyvRbu/jAjHFedc55bOVB7b
