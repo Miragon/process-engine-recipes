@@ -1,15 +1,9 @@
 package io.miragon.tasklist.taskmanager.reconcile
 
-import io.camunda.client.CamundaClient
-import io.camunda.client.api.command.ClientHttpException
-import io.camunda.client.api.search.enums.UserTaskState
-import io.camunda.client.api.search.response.UserTask
 import io.miragon.tasklist.contract.TaskState
-import io.miragon.tasklist.contract.TasklistApi
 import io.miragon.tasklist.taskmanager.TaskmanagerProperties
-import io.miragon.tasklist.taskmanager.projection.CamundaTask
+import io.miragon.tasklist.taskmanager.projection.EngineUserTasks
 import io.miragon.tasklist.taskmanager.projection.ProjectionService
-import io.miragon.tasklist.taskmanager.projection.TaskDetails
 import io.miragon.tasklist.taskmanager.projection.TaskRepository
 import io.miragon.tasklist.taskmanager.projection.UserTaskRow
 import io.miragon.tasklist.taskmanager.api.TaskReportedInactive
@@ -30,7 +24,7 @@ import java.time.OffsetDateTime
 class Reconciler(
     private val tasks: TaskRepository,
     private val projection: ProjectionService,
-    private val camunda: CamundaClient,
+    private val engineTasks: EngineUserTasks,
     properties: TaskmanagerProperties,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -74,24 +68,17 @@ class Reconciler(
 
     /** Checks one open task against Camunda; returns true if it was closed. */
     fun verify(task: UserTaskRow, now: OffsetDateTime = OffsetDateTime.now()): Boolean {
-        val camundaTask = try {
-            camunda.newUserTaskGetRequest(task.userTaskKey).send().join()
-        } catch (e: ClientHttpException) {
-            if (e.code() != 404) throw e
-            null
-        }
+        val engineTask = engineTasks.find(task.userTaskKey)
         return when {
-            camundaTask == null ->
+            engineTask == null ->
                 task.createdAt.isBefore(now.minus(settings.missingGrace)) &&
                     projection.closeByReconciler(task, TaskState.CANCELED, now)
-            camundaTask.state == UserTaskState.COMPLETED -> projection.closeByReconciler(task, TaskState.COMPLETED, now)
-            camundaTask.state == UserTaskState.CANCELED || camundaTask.state == UserTaskState.FAILED ->
-                projection.closeByReconciler(task, TaskState.CANCELED, now)
-            else -> {
-                tasks.fillDetails(task.userTaskKey, TaskDetails(camundaTask.name, camundaTask.processName, camundaTask.externalFormReference))
+            engineTask.state == TaskState.OPEN -> {
+                tasks.fillDetails(task.userTaskKey, engineTask.details)
                 tasks.markVerified(task.userTaskKey, now)
                 false
             }
+            else -> projection.closeByReconciler(task, engineTask.state, now)
         }
     }
 
@@ -103,15 +90,9 @@ class Reconciler(
         var found = 0
         var from = 0
         while (true) {
-            val page = camunda.newUserTaskSearchRequest()
-                .filter { it.state(UserTaskState.CREATED).creationDate { date -> date.lt(startedAt) } }
-                .sort { it.creationDate().asc() }
-                .page { it.from(from).limit(settings.batchSize) }
-                .send()
-                .join()
-                .items()
+            val page = engineTasks.openCreatedBefore(startedAt, from, settings.batchSize)
             val known = tasks.existingKeys(page.map { it.userTaskKey })
-            found += page.filterNot { it.userTaskKey in known }.count { projection.insertMissing(it.toCamundaTask(), now) }
+            found += page.filterNot { it.userTaskKey in known }.count { projection.insertMissing(it, now) }
             if (page.size < settings.batchSize) break
             from += page.size
         }
@@ -119,27 +100,4 @@ class Reconciler(
         if (found > 0) log.info("Discovered {} user tasks that were created before the listener was registered", found)
         return found
     }
-
-    private fun UserTask.toCamundaTask() = CamundaTask(
-        userTaskKey = userTaskKey,
-        elementInstanceKey = elementInstanceKey,
-        processInstanceKey = processInstanceKey,
-        processDefinitionKey = processDefinitionKey,
-        processDefinitionId = bpmnProcessId,
-        processDefinitionVersion = processDefinitionVersion,
-        elementId = elementId,
-        tenantId = tenantId,
-        name = name,
-        processName = processName,
-        domain = customHeaders[TasklistApi.DOMAIN_HEADER]?.takeIf { it.isNotBlank() } ?: bpmnProcessId,
-        businessId = businessId,
-        formRef = externalFormReference,
-        assignee = assignee?.takeIf { it.isNotBlank() },
-        candidateGroups = candidateGroups.orEmpty(),
-        candidateUsers = candidateUsers.orEmpty(),
-        priority = priority ?: 50,
-        dueDate = dueDate,
-        followUpDate = followUpDate,
-        createdAt = creationDate,
-    )
 }

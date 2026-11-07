@@ -1,4 +1,4 @@
-package io.miragon.tasklist.taskmanager.projection
+package io.miragon.tasklist.taskmanager.camunda
 
 import io.camunda.client.CamundaClient
 import io.camunda.client.api.command.ClientHttpException

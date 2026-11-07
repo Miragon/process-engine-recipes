@@ -1,10 +1,12 @@
-package io.miragon.tasklist.taskmanager.projection
+package io.miragon.tasklist.taskmanager.camunda
 
 import io.camunda.client.annotation.JobWorker
 import io.camunda.client.api.command.ClientHttpException
 import io.camunda.client.api.response.ActivatedJob
 import io.camunda.client.api.worker.JobClient
 import io.miragon.tasklist.taskmanager.TaskmanagerProperties
+import io.miragon.tasklist.taskmanager.projection.ProjectionService
+import io.miragon.tasklist.taskmanager.projection.TaskDetailsResolver
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.time.Duration
@@ -24,7 +26,7 @@ class ProjectionWorker(
     @JobWorker(type = TaskmanagerProperties.Listener.TYPE, autoComplete = [false], fetchVariables = ["subject"])
     fun onUserTaskEvent(client: JobClient, job: ActivatedJob) {
         try {
-            UserTaskEvent.from(job)?.let { event -> projection.apply(event, details.cachedOrLoadLater(event)) }
+            job.toUserTaskEvent()?.let { event -> projection.apply(event, details.cachedOrLoadLater(event)) }
         } catch (e: RuntimeException) {
             fail(client, job, e)
             return

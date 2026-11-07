@@ -4,7 +4,7 @@ import io.camunda.client.CamundaClient
 import io.camunda.client.api.search.enums.UserTaskState
 import io.camunda.process.test.api.CamundaAssert
 import io.camunda.process.test.api.CamundaSpringProcessTest
-import io.miragon.tasklist.taskmanager.projection.GlobalListenerRegistration
+import io.miragon.tasklist.taskmanager.camunda.GlobalListenerRegistration
 import io.miragon.tasklist.taskmanager.reconcile.Reconciler
 import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.kotlin.await

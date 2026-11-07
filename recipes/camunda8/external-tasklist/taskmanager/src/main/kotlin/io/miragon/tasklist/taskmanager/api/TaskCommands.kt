@@ -1,45 +1,16 @@
 package io.miragon.tasklist.taskmanager.api
 
-import io.camunda.client.CamundaClient
-import io.camunda.client.api.command.ClientHttpException
-import io.miragon.tasklist.contract.provider.denialReason
-import io.miragon.tasklist.contract.provider.problemDetail
-import org.springframework.stereotype.Component
-
 /**
- * Claim, unclaim and update go straight to Camunda. Each command returns only after the user task listeners ran,
- * the task manager's own one included, so the projection is current when it returns.
+ * Claim, unclaim and update, sent to the engine. Each command returns only after the user task listeners ran, the
+ * task manager's own one included, so the projection is current when it returns.
+ *
+ * Each returns false if the engine accepted the command but did not confirm it in time. It throws [TaskNotActive] when
+ * the task is gone, and an [ApiProblem] when a listener denied the command (422) or it conflicts with the task (409).
  */
-@Component
-class TaskCommands(private val camunda: CamundaClient) {
+interface TaskCommands {
+    fun assign(userTaskKey: Long, assignee: String): Boolean
 
-    /** Returns false if Camunda accepted the command but the listeners did not finish within its 15 s timeout. */
-    fun assign(userTaskKey: Long, assignee: String): Boolean = run {
-        camunda.newAssignUserTaskCommand(userTaskKey).assignee(assignee).allowOverride(false).action("claim").send().join()
-    }
+    fun unassign(userTaskKey: Long): Boolean
 
-    fun unassign(userTaskKey: Long): Boolean = run {
-        camunda.newUnassignUserTaskCommand(userTaskKey).send().join()
-    }
-
-    fun update(userTaskKey: Long, update: TaskUpdate): Boolean = run {
-        val command = camunda.newUpdateUserTaskCommand(userTaskKey).action("update")
-        update.priority?.let { command.priority(it) }
-        update.dueDate?.let { command.dueDate(it) }
-        update.candidateGroups?.let { command.candidateGroups(it) }
-        command.send().join()
-    }
-
-    private fun run(command: () -> Any): Boolean =
-        try {
-            command()
-            true
-        } catch (e: ClientHttpException) {
-            when (e.code()) {
-                404 -> throw TaskNotActive()
-                409 -> throw e.denialReason()?.let { ApiProblem(422, "DENIED", it) } ?: ApiProblem(409, "CONFLICT", e.problemDetail())
-                504 -> false
-                else -> throw e
-            }
-        }
+    fun update(userTaskKey: Long, update: TaskUpdate): Boolean
 }
