@@ -1,7 +1,7 @@
 name: camunda8-external-tasklist
 
 x-service: &service
-  image: eclipse-temurin:25.0.5_8-jre
+  image: eclipse-temurin:27_35-jre
   command: ["java", "-Xmx384m", "-jar", "/app.jar"]
   restart: on-failure
   depends_on:
