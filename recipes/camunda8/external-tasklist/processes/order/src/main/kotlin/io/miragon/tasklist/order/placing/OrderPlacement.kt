@@ -1,8 +1,11 @@
 package io.miragon.tasklist.order.placing
 
-import io.camunda.client.CamundaClient
+import dev.bpmcrafters.processengineapi.CommonRestrictions
+import dev.bpmcrafters.processengineapi.process.StartProcessApi
+import dev.bpmcrafters.processengineapi.process.StartProcessByDefinitionCmd
 import io.miragon.tasklist.contract.ValidationFailed
 import io.miragon.tasklist.order.catalog.Catalog
+import io.miragon.tasklist.order.engine.await
 import io.miragon.tasklist.order.orders.CURRENCY
 import io.miragon.tasklist.order.orders.Customer
 import io.miragon.tasklist.order.orders.NewLine
@@ -17,7 +20,7 @@ data class PlacedOrder(val orderId: String, val processInstanceKey: Long)
 class OrderPlacement(
     private val catalog: Catalog,
     private val orders: OrderRepository,
-    private val camunda: CamundaClient,
+    private val processes: StartProcessApi,
 ) {
 
     /**
@@ -36,14 +39,14 @@ class OrderPlacement(
         val orderId = orders.insert(customer, lines, total)
 
         val subject = "Order $orderId · ${customer.name} · ${total.toPlainString()} $CURRENCY"
-        val instance = camunda.newCreateInstanceCommand()
-            .bpmnProcessId(OrderProcess.ID)
-            .latestVersion()
-            .businessId(orderId)
-            .variables(mapOf("orderId" to orderId, "subject" to subject))
-            .send()
-            .join()
-        orders.recordProcessInstance(orderId, instance.processInstanceKey)
-        return PlacedOrder(orderId, instance.processInstanceKey)
+        val instance = processes.startProcess(
+            StartProcessByDefinitionCmd(
+                OrderProcess.ID,
+                mapOf(CommonRestrictions.BUSINESS_KEY to orderId, "orderId" to orderId, "subject" to subject),
+            ),
+        ).await()
+        val processInstanceKey = instance.instanceId.toLong()
+        orders.recordProcessInstance(orderId, processInstanceKey)
+        return PlacedOrder(orderId, processInstanceKey)
     }
 }

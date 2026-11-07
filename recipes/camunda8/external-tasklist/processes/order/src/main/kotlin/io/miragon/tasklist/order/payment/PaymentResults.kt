@@ -1,6 +1,6 @@
 package io.miragon.tasklist.order.payment
 
-import io.camunda.client.CamundaClient
+import dev.bpmcrafters.processengineapi.correlation.CorrelationApi
 import io.miragon.tasklist.contract.DomainConflict
 import io.miragon.tasklist.order.orders.Order
 import io.miragon.tasklist.order.orders.OrderNotFound
@@ -46,12 +46,12 @@ fun decide(order: Order, result: PaymentResult): PaymentResultDecision = when {
 @Service
 class PaymentResults(
     private val orders: OrderRepository,
-    private val camunda: CamundaClient,
+    private val messages: CorrelationApi,
 ) {
 
     /**
      * Stores the result and passes it to the waiting order process in one transaction. If the process does not
-     * wait yet, Camunda answers 404 and nothing is stored, so the payment application can simply report again.
+     * wait yet, nothing is stored, so the payment application can simply report again.
      */
     @Transactional
     fun apply(orderId: String, result: PaymentResult) {
@@ -66,7 +66,7 @@ class PaymentResults(
                 }
                 orders.recordPaymentResult(order.id, result.paymentId, result.status, result.reason, status)
                 val variables = mapOf("paymentId" to result.paymentId, "paymentReason" to result.reason)
-                if (!camunda.correlateToOrder(message, order.id, variables)) {
+                if (!messages.correlateToOrder(message, order.id, variables)) {
                     throw ProcessNotWaiting("Order ${order.id} does not wait for a payment result yet. Report it again later.")
                 }
             }

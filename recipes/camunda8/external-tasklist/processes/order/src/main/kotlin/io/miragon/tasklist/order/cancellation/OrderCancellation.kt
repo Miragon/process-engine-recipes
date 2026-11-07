@@ -1,6 +1,6 @@
 package io.miragon.tasklist.order.cancellation
 
-import io.camunda.client.CamundaClient
+import dev.bpmcrafters.processengineapi.correlation.CorrelationApi
 import io.miragon.tasklist.contract.DomainConflict
 import io.miragon.tasklist.order.orders.OrderNotFound
 import io.miragon.tasklist.order.orders.OrderProcess
@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class OrderCancellation(
     private val orders: OrderRepository,
-    private val camunda: CamundaClient,
+    private val messages: CorrelationApi,
 ) {
 
     /** Cancels the order, or does nothing if it is canceled already, so the customer may safely ask twice. */
@@ -28,7 +28,7 @@ class OrderCancellation(
 
         val cancelReason = reason?.trim()?.ifEmpty { null }
         orders.recordCancellation(order.id, cancelReason)
-        if (!camunda.correlateToOrder(OrderProcess.ORDER_CANCELED, order.id, mapOf("cancelReason" to cancelReason))) {
+        if (!messages.correlateToOrder(OrderProcess.ORDER_CANCELED, order.id, mapOf("cancelReason" to cancelReason))) {
             throw DomainConflict("The order can no longer be canceled.")
         }
     }
