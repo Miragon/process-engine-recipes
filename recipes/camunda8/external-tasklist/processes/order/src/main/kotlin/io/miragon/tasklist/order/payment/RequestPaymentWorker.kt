@@ -1,9 +1,10 @@
 package io.miragon.tasklist.order.payment
 
-import io.camunda.client.annotation.JobWorker
-import io.camunda.client.annotation.Variable
-import io.camunda.client.exception.CamundaError
 import io.miragon.tasklist.order.OrderProperties
+import io.miragon.tasklist.order.engine.IncidentRequired
+import io.miragon.tasklist.order.engine.RetryLater
+import io.miragon.tasklist.order.engine.ServiceTask
+import io.miragon.tasklist.order.engine.ServiceTaskWorkers
 import io.miragon.tasklist.order.orders.CURRENCY
 import io.miragon.tasklist.order.orders.OrderRepository
 import org.springframework.stereotype.Component
@@ -18,11 +19,16 @@ class RequestPaymentWorker(
     private val orders: OrderRepository,
     private val payments: PaymentsClient,
     private val properties: OrderProperties,
+    workers: ServiceTaskWorkers,
 ) {
 
-    @JobWorker(type = "order.request-payment")
-    fun requestPayment(@Variable orderId: String): Map<String, Any> {
-        val order = orders.find(orderId) ?: throw CamundaError.jobError("There is no order $orderId.", null, 0)
+    init {
+        workers.register("order.request-payment", setOf("orderId"), ::requestPayment)
+    }
+
+    private fun requestPayment(job: ServiceTask): Map<String, Any?> {
+        val orderId = job.string("orderId")
+        val order = orders.find(orderId) ?: throw IncidentRequired("There is no order $orderId.")
         val request = PaymentRequest(
             orderId = order.id,
             amount = order.total,
@@ -35,10 +41,10 @@ class RequestPaymentWorker(
                 orders.recordPaymentRequest(order.id, outcome.paymentId)
                 mapOf("paymentId" to outcome.paymentId)
             }
-            // No retries left: Camunda raises an incident with the reason for a human to look at.
-            is PaymentRequestOutcome.Refused -> throw CamundaError.jobError(outcome.reason, null, 0)
+            // No retries left: the engine raises an incident with the reason for a human to look at.
+            is PaymentRequestOutcome.Refused -> throw IncidentRequired(outcome.reason)
             // One retry less, and a longer wait each time.
-            is PaymentRequestOutcome.Unavailable -> throw CamundaError.jobError(outcome.reason, null, null, ::retryBackoff)
+            is PaymentRequestOutcome.Unavailable -> throw RetryLater(outcome.reason, retryBackoff(job.retries - 1))
         }
     }
 }

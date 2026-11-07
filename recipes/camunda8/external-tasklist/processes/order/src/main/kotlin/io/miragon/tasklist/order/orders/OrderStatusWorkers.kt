@@ -1,7 +1,7 @@
 package io.miragon.tasklist.order.orders
 
-import io.camunda.client.annotation.JobWorker
-import io.camunda.client.annotation.Variable
+import io.miragon.tasklist.order.engine.ServiceTask
+import io.miragon.tasklist.order.engine.ServiceTaskWorkers
 import org.springframework.stereotype.Component
 
 /**
@@ -12,17 +12,17 @@ import org.springframework.stereotype.Component
  * call's transaction failed after Camunda had accepted the command.
  */
 @Component
-class OrderStatusWorkers(private val orders: OrderRepository) {
+class OrderStatusWorkers(private val orders: OrderRepository, workers: ServiceTaskWorkers) {
 
-    @JobWorker(type = "order.decline")
-    fun decline(@Variable orderId: String) = orders.updateStatus(orderId, OrderStatus.DECLINED)
+    init {
+        workers.register("order.decline", setOf("orderId")) { record(it, OrderStatus.DECLINED) }
+        workers.register("order.mark-canceled", setOf("orderId")) { record(it, OrderStatus.CANCELED) }
+        workers.register("order.cancel-unpaid", setOf("orderId")) { record(it, OrderStatus.NOT_PAID) }
+        workers.register("order.ship", setOf("orderId")) { record(it, OrderStatus.SHIPPED) }
+    }
 
-    @JobWorker(type = "order.mark-canceled")
-    fun markCanceled(@Variable orderId: String) = orders.updateStatus(orderId, OrderStatus.CANCELED)
-
-    @JobWorker(type = "order.cancel-unpaid")
-    fun cancelUnpaid(@Variable orderId: String) = orders.updateStatus(orderId, OrderStatus.NOT_PAID)
-
-    @JobWorker(type = "order.ship")
-    fun ship(@Variable orderId: String) = orders.updateStatus(orderId, OrderStatus.SHIPPED)
+    private fun record(job: ServiceTask, status: OrderStatus): Map<String, Any?> {
+        orders.updateStatus(job.string("orderId"), status)
+        return emptyMap()
+    }
 }
