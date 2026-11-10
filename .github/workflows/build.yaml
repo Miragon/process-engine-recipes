@@ -56,10 +56,17 @@ jobs:
           sudo bash -c 'echo "127.0.0.1 keycloak" >> /etc/hosts'
           ./e2e.sh
 
+  brand-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the miragon-brand copies
+        run: sha256sum -c .miragon/brand-assets.sha256
+
   ci-gate:
     name: CI gate
     if: always()
-    needs: [select-recipes, recipe]
+    needs: [select-recipes, recipe, brand-assets]
     runs-on: ubuntu-latest
     steps:
       - run: |
