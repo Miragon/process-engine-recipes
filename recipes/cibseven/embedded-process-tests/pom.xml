@@ -131,6 +131,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <includes>
+                        <include>**/*Test.java</include>
                         <include>**/*TestV*.java</include>
                     </includes>
                     <failIfNoTests>true</failIfNoTests>

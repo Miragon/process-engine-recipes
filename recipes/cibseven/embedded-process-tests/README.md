@@ -45,7 +45,9 @@ Then open `target/jgiven-reports/html/index.html` for the scenarios and `target/
 
 ## Taste test
 
-The build runs twelve tests in four classes. Each checks the path, where the process waits, and what the delegates passed to the use cases, such as the `orderId` that `OrderBikeDelegate` writes and `HandOverBikeDelegate` reads. Change the condition of `Flow_value_to_manager` in `bike-leasing.bpmn` and all four classes fail.
+The build runs twelve process tests in four classes. Each checks the path, where the process waits, and what the delegates passed to the use cases, such as the `orderId` that `OrderBikeDelegate` writes and `HandOverBikeDelegate` reads. Change the condition of `Flow_value_to_manager` in `bike-leasing.bpmn` and all four classes fail.
+
+Twelve unit tests check the pieces without an engine, in short given, when and then blocks: one per [delegate](src/test/java/io/miragon/miravelo/leasing/adapter/inbound/cibseven) against a mocked `DelegateExecution`, [`LeasingProcessAdapterTest`](src/test/java/io/miragon/miravelo/leasing/adapter/outbound/cibseven/LeasingProcessAdapterTest.java) against a mocked `RuntimeService` and `TaskService`, and one per [service](src/test/java/io/miragon/miravelo/leasing/application/service).
 
 [Process Test Coverage](https://github.com/cibseven-community-hub/cibseven-process-test-coverage) merges all runs into one report:
 
@@ -59,11 +61,11 @@ Pick one style and copy its package together with its dependencies from [`pom.xm
 - **JGiven (`bdd`):** `cibseven-bpm-assert`, `cibseven-bpm-junit5`, `cibseven-bpm-jgiven`, `jgiven-junit5` and `cibseven-process-test-coverage-junit5-platform-7`, plus the `jgiven-maven-plugin` and the `jgiven.report.dir` Surefire property. `InMemoryProcessEngine` sets the `MockExpressionManager` that `Mocks.register(...)` needs; point `@Deployment` at your model.
 - **bpmn-to-code (V2):** `bpmn-to-code-runtime` and the `bpmn-to-code-maven` plugin. Its configuration sets the model pattern, the target package and `CAMUNDA_7` as engine; the generated API is committed.
 
-Both styles also need the Surefire `**/*TestV*.java` include, or rename the classes to end in `Test`.
+Both styles also need the Surefire `**/*TestV*.java` include, or rename the classes to end in `Test`. The unit tests need nothing beyond `spring-boot-starter-test`.
 
 ## Kitchen notes
 
-- **Surefire runs only `*Test` classes by default.** The `**/*TestV*.java` include picks up V1 and V2; `failIfNoTests` fails the build if it goes missing.
+- **Surefire runs only `*Test` classes by default.** An explicit include replaces that default, so `pom.xml` lists both `**/*Test.java` and `**/*TestV*.java`.
 - **Give every in-memory engine its own database.** `InMemoryProcessEngine` uses a random H2 name. With a fixed one, the second JGiven class in the same JVM fails with `Table "ACT_HI_PROCINST" already exists`.
 - **Scope job queries to the instance.** The Spring engine lives across test classes. `job("Task_OrderBike", leasing)` finds only this instance's job.
 - **Hand the engine to JGiven in a field initializer.** In `@BeforeEach` it comes too late and the stages fail with "The field camunda is required".
