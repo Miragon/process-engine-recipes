@@ -317,3 +317,24 @@ updates:
       user-task-forms-e2e-npm-security:
         applies-to: security-updates
         patterns: ['*']
+
+  - package-ecosystem: 'maven'
+    directory: '/recipes/cibseven/embedded-process-tests'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+      - 'recipe:cibseven-embedded-process-tests'
+    rebase-strategy: 'auto'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    cooldown:
+      default-days: 7
+    groups:
+      embedded-process-tests-maven:
+        applies-to: version-updates
+        patterns: ['*']
+      embedded-process-tests-maven-security:
+        applies-to: security-updates
+        patterns: ['*']
