@@ -1,0 +1,6 @@
+name: cibseven-embedded-process-tests
+problem: Test a BPMN process on an embedded CIB seven engine with its real delegates and process adapter, once with CIB seven Assert and once behavior-driven with JGiven.
+engine: CIB seven 2.2
+language: Java
+java: "21"
+build: ./mvnw -B verify

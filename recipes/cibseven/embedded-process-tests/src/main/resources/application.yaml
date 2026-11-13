@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:bike-leasing;DB_CLOSE_DELAY=-1
+
+camunda:
+  bpm:
+    admin-user:
+      id: admin
+      password: admin
+    deployment-resource-pattern:
+      - classpath*:bpmn/*.bpmn

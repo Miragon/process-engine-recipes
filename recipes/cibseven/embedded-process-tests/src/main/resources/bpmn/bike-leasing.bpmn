@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_bike_order" targetNamespace="http://miragon.io/miravelo/bike-order" exporter="Camunda Modeler" exporterVersion="5.20.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:process id="bikeLeasingProcess" name="MiraVelo Bike Leasing" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="StartEvent_leasingRequestReceived" name="Leasing request received">
+      <bpmn:outgoing>Flow_start_to_value</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="Gateway_contractValue" name="Contract value?" default="Flow_value_to_auto">
+      <bpmn:incoming>Flow_start_to_value</bpmn:incoming>
+      <bpmn:outgoing>Flow_value_to_manager</bpmn:outgoing>
+      <bpmn:outgoing>Flow_value_to_auto</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_ApproveApplication" name="Approve application">
+      <bpmn:incoming>Flow_value_to_manager</bpmn:incoming>
+      <bpmn:outgoing>Flow_manager_to_merge</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:boundaryEvent id="BoundaryEvent_reminder" name="After 3 days" cancelActivity="false" attachedToRef="Task_ApproveApplication">
+      <bpmn:outgoing>Flow_reminder_to_send</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P3D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:serviceTask id="Task_SendReminder" name="Send reminder" camunda:asyncBefore="true" camunda:delegateExpression="${sendReminderDelegate}">
+      <bpmn:incoming>Flow_reminder_to_send</bpmn:incoming>
+      <bpmn:outgoing>Flow_send_to_reminderEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_reminderSent" name="Reminder sent">
+      <bpmn:incoming>Flow_send_to_reminderEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="Task_AutoApprove" name="Auto-approve" camunda:asyncBefore="true" camunda:delegateExpression="${autoApproveDelegate}">
+      <bpmn:incoming>Flow_value_to_auto</bpmn:incoming>
+      <bpmn:outgoing>Flow_auto_to_merge</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_approvalMerge">
+      <bpmn:incoming>Flow_manager_to_merge</bpmn:incoming>
+      <bpmn:incoming>Flow_auto_to_merge</bpmn:incoming>
+      <bpmn:outgoing>Flow_merge_to_prepare</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_PrepareContract" name="Prepare contract">
+      <bpmn:incoming>Flow_merge_to_prepare</bpmn:incoming>
+      <bpmn:outgoing>Flow_prepare_to_charge</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_OrderBike" name="Order bike" camunda:asyncBefore="true" camunda:delegateExpression="${orderBikeDelegate}">
+      <bpmn:incoming>Flow_prepare_to_charge</bpmn:incoming>
+      <bpmn:outgoing>Flow_charge_to_ship</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_HandOver" name="Hand over" camunda:asyncBefore="true" camunda:delegateExpression="${handOverBikeDelegate}">
+      <bpmn:incoming>Flow_charge_to_ship</bpmn:incoming>
+      <bpmn:outgoing>Flow_ship_to_end</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_leasingActive" name="Leasing active">
+      <bpmn:incoming>Flow_ship_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_start_to_value" sourceRef="StartEvent_leasingRequestReceived" targetRef="Gateway_contractValue" />
+    <bpmn:sequenceFlow id="Flow_value_to_manager" name="&#8805; 1000" sourceRef="Gateway_contractValue" targetRef="Task_ApproveApplication">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${contractValue &gt;= 1000}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_value_to_auto" name="&#60; 1000" sourceRef="Gateway_contractValue" targetRef="Task_AutoApprove" />
+    <bpmn:sequenceFlow id="Flow_manager_to_merge" sourceRef="Task_ApproveApplication" targetRef="Gateway_approvalMerge" />
+    <bpmn:sequenceFlow id="Flow_reminder_to_send" sourceRef="BoundaryEvent_reminder" targetRef="Task_SendReminder" />
+    <bpmn:sequenceFlow id="Flow_send_to_reminderEnd" sourceRef="Task_SendReminder" targetRef="EndEvent_reminderSent" />
+    <bpmn:sequenceFlow id="Flow_auto_to_merge" sourceRef="Task_AutoApprove" targetRef="Gateway_approvalMerge" />
+    <bpmn:sequenceFlow id="Flow_merge_to_prepare" sourceRef="Gateway_approvalMerge" targetRef="Task_PrepareContract" />
+    <bpmn:sequenceFlow id="Flow_prepare_to_charge" sourceRef="Task_PrepareContract" targetRef="Task_OrderBike" />
+    <bpmn:sequenceFlow id="Flow_charge_to_ship" sourceRef="Task_OrderBike" targetRef="Task_HandOver" />
+    <bpmn:sequenceFlow id="Flow_ship_to_end" sourceRef="Task_HandOver" targetRef="EndEvent_leasingActive" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="bikeLeasingProcess">
+      <bpmndi:BPMNShape id="StartEvent_leasingRequestReceived_di" bpmnElement="StartEvent_leasingRequestReceived">
+        <dc:Bounds x="182" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="167" y="275" width="68" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_contractValue_di" bpmnElement="Gateway_contractValue" isMarkerVisible="true">
+        <dc:Bounds x="265" y="225" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="261" y="282" width="58" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ApproveApplication_di" bpmnElement="Task_ApproveApplication">
+        <dc:Bounds x="390" y="90" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendReminder_di" bpmnElement="Task_SendReminder">
+        <dc:Bounds x="560" y="112" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_reminderSent_di" bpmnElement="EndEvent_reminderSent">
+        <dc:Bounds x="712" y="134" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="702" y="177" width="63" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AutoApprove_di" bpmnElement="Task_AutoApprove">
+        <dc:Bounds x="390" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_approvalMerge_di" bpmnElement="Gateway_approvalMerge" isMarkerVisible="true">
+        <dc:Bounds x="545" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PrepareContract_di" bpmnElement="Task_PrepareContract">
+        <dc:Bounds x="650" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_OrderBike_di" bpmnElement="Task_OrderBike">
+        <dc:Bounds x="800" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_HandOver_di" bpmnElement="Task_HandOver">
+        <dc:Bounds x="950" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_leasingActive_di" bpmnElement="EndEvent_leasingActive">
+        <dc:Bounds x="1102" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1101" y="275" width="39" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BoundaryEvent_reminder_di" bpmnElement="BoundaryEvent_reminder">
+        <dc:Bounds x="472" y="132" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="446" y="99" width="58" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_start_to_value_di" bpmnElement="Flow_start_to_value">
+        <di:waypoint x="218" y="250" />
+        <di:waypoint x="265" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_value_to_manager_di" bpmnElement="Flow_value_to_manager">
+        <di:waypoint x="290" y="225" />
+        <di:waypoint x="290" y="130" />
+        <di:waypoint x="390" y="130" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="298" y="103" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_value_to_auto_di" bpmnElement="Flow_value_to_auto">
+        <di:waypoint x="290" y="275" />
+        <di:waypoint x="290" y="370" />
+        <di:waypoint x="390" y="370" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="298" y="343" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_manager_to_merge_di" bpmnElement="Flow_manager_to_merge">
+        <di:waypoint x="440" y="170" />
+        <di:waypoint x="440" y="250" />
+        <di:waypoint x="545" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_reminder_to_send_di" bpmnElement="Flow_reminder_to_send">
+        <di:waypoint x="508" y="150" />
+        <di:waypoint x="560" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_send_to_reminderEnd_di" bpmnElement="Flow_send_to_reminderEnd">
+        <di:waypoint x="660" y="152" />
+        <di:waypoint x="712" y="152" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_auto_to_merge_di" bpmnElement="Flow_auto_to_merge">
+        <di:waypoint x="490" y="370" />
+        <di:waypoint x="570" y="370" />
+        <di:waypoint x="570" y="275" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_merge_to_prepare_di" bpmnElement="Flow_merge_to_prepare">
+        <di:waypoint x="595" y="250" />
+        <di:waypoint x="650" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_prepare_to_charge_di" bpmnElement="Flow_prepare_to_charge">
+        <di:waypoint x="750" y="250" />
+        <di:waypoint x="800" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_charge_to_ship_di" bpmnElement="Flow_charge_to_ship">
+        <di:waypoint x="900" y="250" />
+        <di:waypoint x="950" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ship_to_end_di" bpmnElement="Flow_ship_to_end">
+        <di:waypoint x="1050" y="250" />
+        <di:waypoint x="1102" y="250" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
