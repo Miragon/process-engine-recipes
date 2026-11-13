@@ -9,8 +9,8 @@ compose() {
 }
 
 start_instance() {
-  compose exec -T "$1" curl -fs -o /dev/null -X POST -H 'Content-Type: application/json' -d '{}' \
-    "http://localhost:8080/engine-rest/process-definition/key/$2/start"
+  compose exec -T webclient curl -fs -o /dev/null -X POST -H 'Content-Type: application/json' -d '{}' \
+    "http://$1:8080/engine-rest/process-definition/key/$2/start"
 }
 
 ./gradlew bootJar

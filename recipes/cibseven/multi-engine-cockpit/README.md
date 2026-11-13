@@ -12,11 +12,11 @@ Every service with an embedded CIB seven engine ships its own cockpit, so suppor
 | --- | --- |
 | CIB seven | 2.2.0 |
 | Spring Boot | 4.1.2 |
-| Java | 21 |
+| Java | 25 |
 | Gradle | 9.8.2 |
 | Playwright | 1.64.1 |
 
-You need a JDK 21 and Podman or Docker with Compose. All library versions are in `gradle/libs.versions.toml`. Tested with Podman and Docker Compose.
+You need a JDK 25 and Podman or Docker with Compose. All library versions are in `gradle/libs.versions.toml`. Tested with Podman and Docker Compose.
 
 ## How it works
 

@@ -226,6 +226,10 @@ updates:
       include: 'scope'
     cooldown:
       default-days: 7
+    ignore:
+      # The services run on the Java LTS the recipe states (25); moving to another Java is a decision, not a bump.
+      - dependency-name: 'eclipse-temurin'
+        update-types: ['version-update:semver-major']
     groups:
       multi-engine-cockpit-docker-compose:
         applies-to: version-updates
