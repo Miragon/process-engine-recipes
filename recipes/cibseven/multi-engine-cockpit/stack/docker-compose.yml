@@ -1,7 +1,7 @@
 name: miravelo-cockpit
 
 x-service: &service
-  image: eclipse-temurin:21-jre
+  image: eclipse-temurin:24-jre
   command: ["java", "-jar", "/app.jar"]
   healthcheck:
     test: ["CMD", "curl", "-fs", "http://localhost:8080/engine-rest/engine"]
