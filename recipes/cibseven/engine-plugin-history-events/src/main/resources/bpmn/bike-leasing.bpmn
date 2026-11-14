@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="definitions_miraVeloBikeLeasing" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:process id="bikeLeasingProcess" name="MiraVelo Bike Leasing" isExecutable="true" camunda:historyTimeToLive="180" camunda:isStartableInTasklist="true">
+    <bpmn:startEvent id="StartEvent_leasingRequestReceived" name="Leasing request received">
+      <bpmn:outgoing>Flow_start_to_approve</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_ApproveApplication" name="Approve application">
+      <bpmn:incoming>Flow_start_to_approve</bpmn:incoming>
+      <bpmn:outgoing>Flow_approve_to_order</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_OrderBike" name="Order bike" camunda:delegateExpression="${orderBikeDelegate}">
+      <bpmn:incoming>Flow_approve_to_order</bpmn:incoming>
+      <bpmn:outgoing>Flow_order_to_end</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_leasingActive" name="Leasing active">
+      <bpmn:incoming>Flow_order_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_order_to_end" sourceRef="Task_OrderBike" targetRef="EndEvent_leasingActive" />
+    <bpmn:sequenceFlow id="Flow_approve_to_order" sourceRef="Task_ApproveApplication" targetRef="Task_OrderBike" />
+    <bpmn:sequenceFlow id="Flow_start_to_approve" sourceRef="StartEvent_leasingRequestReceived" targetRef="Task_ApproveApplication" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_bikeLeasingProcess">
+    <bpmndi:BPMNPlane id="BPMNPlane_bikeLeasingProcess" bpmnElement="bikeLeasingProcess">
+      <bpmndi:BPMNShape id="BPMNShape_StartEvent_leasingRequestReceived" bpmnElement="StartEvent_leasingRequestReceived">
+        <dc:Bounds x="80" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="64" y="144" width="68" height="42" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Task_ApproveApplication" bpmnElement="Task_ApproveApplication">
+        <dc:Bounds x="176" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Task_OrderBike" bpmnElement="Task_OrderBike">
+        <dc:Bounds x="336" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_EndEvent_leasingActive" bpmnElement="EndEvent_leasingActive">
+        <dc:Bounds x="496" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="484" y="144" width="61" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_order_to_end" bpmnElement="Flow_order_to_end">
+        <di:waypoint x="436" y="120" />
+        <di:waypoint x="496" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_approve_to_order" bpmnElement="Flow_approve_to_order">
+        <di:waypoint x="276" y="120" />
+        <di:waypoint x="336" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_start_to_approve" bpmnElement="Flow_start_to_approve">
+        <di:waypoint x="116" y="120" />
+        <di:waypoint x="176" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:bike-leasing;DB_CLOSE_DELAY=-1
+  cloud:
+    stream:
+      bindings:
+        processEvents-out-0:
+          destination: process-events
+      kafka:
+        binder:
+          brokers: localhost:9092
+
+camunda:
+  bpm:
+    admin-user:
+      id: admin
+      password: admin
+    deployment-resource-pattern:
+      - classpath*:bpmn/*.bpmn
+    filter:
+      create: All tasks
+
+cibseven:
+  webclient:
+    engineRest:
+      url: http://localhost:${server.port:8080}
+    authentication:
+      jwtSecret: j4pamSmEISOUvJ7y5D/So/s4zBw4gi0a54nlT2e04QbJSSWN4a/WdwMfCIRo31QZUbUZz0lhAz/mIOi6tg/GEPAMhJxoLc7FqVd0J0c33nilb0w0FqZ2wl6mY4CswBIv9C88ReArNsyvRbu/jAjHFedc55bOVB7b
