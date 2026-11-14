@@ -1,6 +1,6 @@
 package io.miragon.miravelo.leasing.adapter.inbound.cibseven.history;
 
-import static io.miragon.miravelo.leasing.adapter.inbound.cibseven.history.ProcessMilestoneMessages.milestone;
+import static io.miragon.miravelo.leasing.adapter.inbound.cibseven.history.PublishedProcessEvents.event;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -24,7 +24,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @Import(TestChannelBinderConfiguration.class)
-class HistoryEventsProcessTest {
+class ProcessEventsProcessTest {
 
     private static final String APPLICATION_ID = "APP-4711";
 
@@ -49,16 +49,16 @@ class HistoryEventsProcessTest {
     }
 
     @Test
-    void publishesEveryMilestoneOfALeasingApplication() {
+    void publishesEveryProcessEventOfALeasingApplication() {
         ProcessInstance leasing = startLeasing();
 
         approveApplication(leasing);
 
-        assertThat(ProcessMilestoneMessages.receiveAll(output)).containsExactly(
-                milestone("PROCESS_STARTED", null, APPLICATION_ID),
-                milestone("TASK_COMPLETED", FlowNodes.TaskApproveApplication.ELEMENT_ID, APPLICATION_ID),
-                milestone("TASK_COMPLETED", FlowNodes.TaskOrderBike.ELEMENT_ID, APPLICATION_ID),
-                milestone("PROCESS_ENDED", null, APPLICATION_ID));
+        assertThat(PublishedProcessEvents.receiveAll(output)).containsExactly(
+                event("PROCESS_STARTED", null, APPLICATION_ID),
+                event("TASK_COMPLETED", FlowNodes.TaskApproveApplication.ELEMENT_ID, APPLICATION_ID),
+                event("TASK_COMPLETED", FlowNodes.TaskOrderBike.ELEMENT_ID, APPLICATION_ID),
+                event("PROCESS_ENDED", null, APPLICATION_ID));
     }
 
     @Test
@@ -82,7 +82,7 @@ class HistoryEventsProcessTest {
 
         assertThatThrownBy(() -> approveApplication(leasing)).hasMessageContaining("Supplier unreachable");
 
-        assertThat(ProcessMilestoneMessages.receiveAll(output)).isEmpty();
+        assertThat(PublishedProcessEvents.receiveAll(output)).isEmpty();
         assertThat(openApprovalTasks(leasing)).isEqualTo(1);
     }
 

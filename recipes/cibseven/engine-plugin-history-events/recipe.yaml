@@ -1,5 +1,5 @@
 name: cibseven-engine-plugin-history-events
-problem: Stream the milestones of every process from the engine's history events to an event bus, with an engine plugin and without losing the history in Cockpit.
+problem: Stream the process events of every process from the engine's history events to an event bus, with an engine plugin and without losing the history in Cockpit.
 engine: CIB seven 2.2
 language: Java
 java: "21"

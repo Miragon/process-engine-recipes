@@ -3,25 +3,25 @@ package io.miragon.miravelo.leasing.adapter.inbound.cibseven.history;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import io.miragon.miravelo.leasing.application.port.inbound.PublishProcessMilestoneUseCase;
+import io.miragon.miravelo.leasing.application.port.inbound.PublishProcessEventUseCase;
 import org.cibseven.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.cibseven.bpm.engine.impl.cfg.StandaloneInMemProcessEngineConfiguration;
 import org.junit.jupiter.api.Test;
 
-class ProcessMilestonePluginTest {
+class ProcessEventsPluginTest {
 
-    private final PublishProcessMilestoneUseCase useCase = mock(PublishProcessMilestoneUseCase.class);
-    private final ProcessMilestonePlugin underTest = new ProcessMilestonePlugin(useCase);
+    private final PublishProcessEventUseCase useCase = mock(PublishProcessEventUseCase.class);
+    private final ProcessEventsPlugin underTest = new ProcessEventsPlugin(useCase);
 
     @Test
-    void addsTheMilestoneHandlerNextToTheDefaultHistory() {
+    void addsTheHandlerNextToTheDefaultHistory() {
         ProcessEngineConfigurationImpl configuration = new StandaloneInMemProcessEngineConfiguration();
 
         underTest.preInit(configuration);
 
         assertThat(configuration.getCustomHistoryEventHandlers())
                 .singleElement()
-                .isInstanceOf(ProcessMilestoneHistoryEventHandler.class);
+                .isInstanceOf(ProcessEventsHistoryHandler.class);
         assertThat(configuration.isEnableDefaultDbHistoryEventHandler()).isTrue();
     }
 }

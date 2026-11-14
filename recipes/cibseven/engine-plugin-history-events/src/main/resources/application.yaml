@@ -4,8 +4,8 @@ spring:
   cloud:
     stream:
       bindings:
-        processMilestones-out-0:
-          destination: process-milestones
+        processEvents-out-0:
+          destination: process-events
       kafka:
         binder:
           brokers: localhost:9092

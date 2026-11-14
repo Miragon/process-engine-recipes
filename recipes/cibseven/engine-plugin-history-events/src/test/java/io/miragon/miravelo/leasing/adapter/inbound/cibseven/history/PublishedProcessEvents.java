@@ -7,30 +7,30 @@ import org.springframework.messaging.Message;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-final class ProcessMilestoneMessages {
+final class PublishedProcessEvents {
 
-    private static final String DESTINATION = "process-milestones";
+    private static final String DESTINATION = "process-events";
     private static final long RECEIVE_TIMEOUT_MILLIS = 200;
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
-    record ReceivedMilestone(String type, String activityId, String businessKey) {
+    record ReceivedEvent(String type, String activityId, String businessKey) {
     }
 
-    static ReceivedMilestone milestone(String type, String activityId, String businessKey) {
-        return new ReceivedMilestone(type, activityId, businessKey);
+    static ReceivedEvent event(String type, String activityId, String businessKey) {
+        return new ReceivedEvent(type, activityId, businessKey);
     }
 
-    static List<ReceivedMilestone> receiveAll(OutputDestination output) {
-        List<ReceivedMilestone> received = new ArrayList<>();
+    static List<ReceivedEvent> receiveAll(OutputDestination output) {
+        List<ReceivedEvent> received = new ArrayList<>();
         Message<byte[]> message;
         while ((message = output.receive(RECEIVE_TIMEOUT_MILLIS, DESTINATION)) != null) {
-            received.add(toMilestone(JSON.readTree(message.getPayload())));
+            received.add(toEvent(JSON.readTree(message.getPayload())));
         }
         return received;
     }
 
-    private static ReceivedMilestone toMilestone(JsonNode json) {
-        return milestone(text(json, "type"), text(json, "activityId"), text(json, "businessKey"));
+    private static ReceivedEvent toEvent(JsonNode json) {
+        return event(text(json, "type"), text(json, "activityId"), text(json, "businessKey"));
     }
 
     private static String text(JsonNode json, String field) {
@@ -38,6 +38,6 @@ final class ProcessMilestoneMessages {
         return value == null || value.isNull() ? null : value.asString();
     }
 
-    private ProcessMilestoneMessages() {
+    private PublishedProcessEvents() {
     }
 }

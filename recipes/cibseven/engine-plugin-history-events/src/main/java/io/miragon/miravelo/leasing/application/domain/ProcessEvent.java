@@ -2,7 +2,7 @@ package io.miragon.miravelo.leasing.application.domain;
 
 import java.time.Instant;
 
-public record ProcessMilestone(
+public record ProcessEvent(
         Type type,
         String processDefinitionKey,
         String processInstanceId,
