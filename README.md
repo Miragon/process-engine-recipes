@@ -21,6 +21,7 @@ Most engine material shows how to use an engine. The harder questions come later
 | One cockpit for the engines of several services | [`cibseven-multi-engine-cockpit`](recipes/cibseven/multi-engine-cockpit/README.md) | CIB seven 2.2 | Java |
 | Every user task form type side by side | [`cibseven-user-task-forms`](recipes/cibseven/user-task-forms/README.md) | CIB seven 2.2 | Java |
 | Process tests with real delegates, natively and behavior-driven | [`cibseven-embedded-process-tests`](recipes/cibseven/embedded-process-tests/README.md) | CIB seven 2.2 | Java |
+| Engine plugin that streams process milestones to an event bus | [`cibseven-engine-plugin-history-events`](recipes/cibseven/engine-plugin-history-events/README.md) | CIB seven 2.2 | Java |
 | One tasklist for the user tasks of several process applications | [`camunda8-external-tasklist`](recipes/camunda8/external-tasklist/README.md) | Camunda 8.10 | Kotlin |
 
 Looking for an older showcase? They are preserved at the tag [`archive/showcases-2026`](https://github.com/Miragon/process-engine-recipes/tree/archive/showcases-2026).

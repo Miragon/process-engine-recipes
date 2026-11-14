@@ -342,3 +342,45 @@ updates:
       embedded-process-tests-maven-security:
         applies-to: security-updates
         patterns: ['*']
+
+  - package-ecosystem: 'maven'
+    directory: '/recipes/cibseven/engine-plugin-history-events'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+      - 'recipe:cibseven-engine-plugin-history-events'
+    rebase-strategy: 'auto'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    cooldown:
+      default-days: 7
+    groups:
+      engine-plugin-history-events-maven:
+        applies-to: version-updates
+        patterns: ['*']
+      engine-plugin-history-events-maven-security:
+        applies-to: security-updates
+        patterns: ['*']
+
+  - package-ecosystem: 'docker-compose'
+    directory: '/recipes/cibseven/engine-plugin-history-events/stack'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+      - 'recipe:cibseven-engine-plugin-history-events'
+    rebase-strategy: 'auto'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    cooldown:
+      default-days: 7
+    groups:
+      engine-plugin-history-events-docker-compose:
+        applies-to: version-updates
+        patterns: ['*']
+      engine-plugin-history-events-docker-compose-security:
+        applies-to: security-updates
+        patterns: ['*']
