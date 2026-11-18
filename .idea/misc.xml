@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="MavenProjectsManager">
+    <option name="originalFiles">
+      <list>
+        <option value="$PROJECT_DIR$/recipes/camunda7/cockpit-sso/pom.xml" />
+        <option value="$PROJECT_DIR$/recipes/camunda8/external-tasklist/pom.xml" />
+        <option value="$PROJECT_DIR$/recipes/cibseven/embedded-process-tests/pom.xml" />
+        <option value="$PROJECT_DIR$/recipes/cibseven/engine-plugin-history-events/pom.xml" />
+      </list>
+    </option>
+  </component>
+</project>

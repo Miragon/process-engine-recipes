@@ -63,10 +63,17 @@ jobs:
       - name: Check brand asset copies
         run: sha256sum -c .miragon/brand-assets.sha256
 
+  idea-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the IntelliJ project files
+        run: scripts/generate-idea-config.sh --check
+
   ci-gate:
     name: CI gate
     if: always()
-    needs: [select-recipes, recipe, brand-assets]
+    needs: [select-recipes, recipe, brand-assets, idea-config]
     runs-on: ubuntu-latest
     steps:
       - run: |
